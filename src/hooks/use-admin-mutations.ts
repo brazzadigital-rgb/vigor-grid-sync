@@ -207,16 +207,63 @@ export function useAssignWorkout() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (data: { member_id: string; template_id: string; start_date?: string }) => {
-      const { error } = await supabase.from("assigned_workouts").insert({
+      const startDate = data.start_date ?? new Date().toISOString().split("T")[0];
+
+      // 1. Create the assignment
+      const { data: assignment, error } = await supabase.from("assigned_workouts").insert({
         member_id: data.member_id,
         template_id: data.template_id,
         gym_id: gymId!,
         status: "active",
-        start_date: data.start_date ?? new Date().toISOString().split("T")[0],
-      } as any);
+        start_date: startDate,
+      } as any).select("id").single();
       if (error) throw error;
+
+      // 2. Fetch workout days for the template
+      const { data: days } = await supabase
+        .from("workout_days")
+        .select("day_index")
+        .eq("template_id", data.template_id)
+        .order("day_index");
+
+      if (days && days.length > 0) {
+        // 3. Fetch template weeks
+        const { data: template } = await supabase
+          .from("workout_templates")
+          .select("weeks")
+          .eq("id", data.template_id)
+          .single();
+
+        const weeks = template?.weeks ?? 4;
+        const start = new Date(startDate + "T00:00:00");
+        const sessions: any[] = [];
+
+        // Generate sessions: for each week, create a session for each workout day
+        for (let w = 0; w < weeks; w++) {
+          for (const day of days) {
+            const sessionDate = new Date(start);
+            sessionDate.setDate(start.getDate() + w * 7 + day.day_index);
+            sessions.push({
+              member_id: data.member_id,
+              gym_id: gymId!,
+              assigned_workout_id: assignment.id,
+              date: sessionDate.toISOString().split("T")[0],
+              status: "planned",
+            });
+          }
+        }
+
+        if (sessions.length > 0) {
+          const { error: sessErr } = await supabase.from("workout_sessions").insert(sessions);
+          if (sessErr) console.error("Error creating sessions:", sessErr);
+        }
+      }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gym-assigned-workouts"] }); toast({ title: "Treino atribuído!" }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gym-assigned-workouts"] });
+      qc.invalidateQueries({ queryKey: ["my-sessions"] });
+      toast({ title: "Treino atribuído!", description: "Sessões geradas no calendário." });
+    },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 }
