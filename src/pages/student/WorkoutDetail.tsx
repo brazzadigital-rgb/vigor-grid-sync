@@ -1,7 +1,56 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Dumbbell, Clock, Zap, Play, Loader2 } from "lucide-react";
+import { ArrowLeft, Dumbbell, Clock, Zap, Play, Loader2, Image as ImageIcon, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyAssignedWorkouts, useWorkoutDays } from "@/hooks/use-supabase-data";
+import { useState } from "react";
+
+function ExerciseInstructions({ instructions }: { instructions: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!instructions) return null;
+
+  let parsed: any = null;
+  try { parsed = JSON.parse(instructions); } catch { return null; }
+  if (!parsed) return null;
+
+  return (
+    <div className="space-y-2">
+      <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-xs text-primary font-medium">
+        {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        {expanded ? "Ocultar instruções" : "Ver instruções"}
+      </button>
+      {expanded && (
+        <div className="space-y-3 animate-slide-up">
+          {parsed.steps && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1"><Target className="w-3 h-3 text-primary" /> Passo a Passo</p>
+              {parsed.steps.map((step: string, i: number) => (
+                <p key={i} className="text-xs text-muted-foreground pl-4">
+                  <span className="text-primary font-semibold">{i + 1}.</span> {step}
+                </p>
+              ))}
+            </div>
+          )}
+          {parsed.tips && (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1"><Lightbulb className="w-3 h-3 text-warning" /> Dicas</p>
+              {parsed.tips.map((tip: string, i: number) => (
+                <p key={i} className="text-xs text-muted-foreground pl-4">• {tip}</p>
+              ))}
+            </div>
+          )}
+          {parsed.common_mistakes && (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-destructive" /> Erros Comuns</p>
+              {parsed.common_mistakes.map((m: string, i: number) => (
+                <p key={i} className="text-xs text-muted-foreground pl-4">⚠ {m}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function WorkoutDetail() {
   const navigate = useNavigate();
@@ -24,7 +73,7 @@ export default function WorkoutDetail() {
   }
 
   return (
-    <div className="px-5 pt-14 pb-6 max-w-lg mx-auto space-y-6">
+    <div className="px-5 pt-12 pb-6 max-w-lg mx-auto space-y-5">
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-secondary text-foreground hover:bg-secondary/80 transition-colors">
           <ArrowLeft className="w-5 h-5" />
@@ -58,17 +107,34 @@ export default function WorkoutDetail() {
           {(day.workout_items ?? [])
             .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0))
             .map((item: any, i: number) => (
-            <div key={item.id} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-sm font-bold text-primary">
-                {i + 1}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{item.exercises?.name ?? "Exercício"}</p>
-                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                  <span>{item.sets} × {item.reps}</span>
-                  <span>🔄 {item.rest_seconds}s</span>
-                  {item.intensity && <span>{item.intensity}</span>}
+            <div key={item.id} className="rounded-2xl border border-border bg-card overflow-hidden">
+              {/* Exercise Image */}
+              {item.exercises?.media_url && (
+                <div className="w-full h-40 bg-secondary overflow-hidden">
+                  <img
+                    src={item.exercises.media_url}
+                    alt={item.exercises?.name ?? "Exercício"}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
                 </div>
+              )}
+              <div className="p-4 space-y-2">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-sm font-bold text-primary">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{item.exercises?.name ?? "Exercício"}</p>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <span>{item.sets} × {item.reps}</span>
+                      <span>🔄 {item.rest_seconds}s</span>
+                      {item.intensity && <span className="text-primary">{item.intensity}</span>}
+                    </div>
+                  </div>
+                </div>
+                {/* AI Instructions */}
+                <ExerciseInstructions instructions={item.exercises?.instructions ?? null} />
               </div>
             </div>
           ))}
