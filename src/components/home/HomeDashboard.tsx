@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "./NotificationBell";
 import PerformanceDashboard from "./PerformanceDashboard";
+import PerformanceActivityChart from "./PerformanceActivityChart";
 import TrainerCard from "./TrainerCard";
 import BodyFocusCarousel from "./BodyFocusCarousel";
 
@@ -148,8 +149,8 @@ export default function HomeDashboard() {
         </motion.div>
       )}
 
-      {/* Trainer Card - shown only if coach exists (future: conditional on plan) */}
-      {/* For now we show a placeholder that checks if the user has a coach assigned */}
+      {/* Activity compact */}
+      <PerformanceActivityChart compact />
 
       {/* Body Focus */}
       <BodyFocusCarousel />
