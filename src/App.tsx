@@ -16,6 +16,7 @@ import WorkoutExecution from "./pages/student/WorkoutExecution";
 import StudentSchedule from "./pages/student/StudentSchedule";
 import StudentSearch from "./pages/student/StudentSearch";
 import StudentProfile from "./pages/student/StudentProfile";
+import StudentMyProfile from "./pages/student/StudentMyProfile";
 import StudentProgress from "./pages/student/StudentProgress";
 import StudentPayments from "./pages/student/StudentPayments";
 import StudentCredential from "./pages/student/StudentCredential";
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/app/schedule" element={<ProtectedRoute><StudentLayout><StudentSchedule /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/search" element={<ProtectedRoute><StudentLayout><StudentSearch /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile" element={<ProtectedRoute><StudentLayout><StudentProfile /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/profile/me" element={<ProtectedRoute><StudentLayout><StudentMyProfile /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/progress" element={<ProtectedRoute><StudentLayout><StudentProgress /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/payments" element={<ProtectedRoute><StudentLayout><StudentPayments /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/credential" element={<ProtectedRoute><StudentLayout><StudentCredential /></StudentLayout></ProtectedRoute>} />

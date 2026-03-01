@@ -1,5 +1,5 @@
 import { 
-  User, Bell, Crown, MessageCircle, Ruler, Target, Plus, Trophy, Settings, LogOut, ChevronRight, Edit, QrCode
+  User, Bell, Crown, Target, Edit, QrCode, LogOut, ChevronRight, Settings
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,14 +7,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMyMembership, useMyWorkoutStats, useMyCredential } from "@/hooks/use-supabase-data";
 
 const menuItems = [
+  { icon: User, label: "Meu Perfil", description: "Dados, medidas e progresso", to: "/app/profile/me", accent: true },
+  { icon: Crown, label: "Meu Plano", description: "Detalhes e upgrade", to: "/app/profile/plan" },
   { icon: Edit, label: "Editar Perfil", description: "Foto, nome e dados", to: "/app/profile/settings" },
-  { icon: Crown, label: "Meu Plano", description: "Detalhes e upgrade", to: "/app/profile/plan", accent: true },
-  { icon: Bell, label: "Notificações", description: "Alertas e lembretes", to: "/app/profile/notifications" },
-  { icon: MessageCircle, label: "Fale com seu PT", description: "Mensagem ao coach", to: "/app/profile/chat" },
-  { icon: Ruler, label: "Minhas Medidas", description: "Peso, BF e medidas", to: "/app/profile/progress" },
   { icon: Target, label: "Meus Objetivos", description: "Acompanhe suas metas", to: "/app/goals" },
-  { icon: Plus, label: "Adicionar Meta", description: "Criar novo objetivo", to: "/app/goals/new" },
-  { icon: Trophy, label: "Minhas Conquistas", description: "Badges e troféus", to: "/app/profile/badges" },
+  { icon: Bell, label: "Notificações", description: "Alertas e lembretes", to: "/app/profile/notifications" },
   { icon: QrCode, label: "Credencial de Acesso", description: "QR Code e catraca", to: "/app/profile/credential" },
 ];
 
