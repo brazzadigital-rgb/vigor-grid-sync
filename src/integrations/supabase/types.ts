@@ -1123,6 +1123,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_profile_by_email: {
+        Args: { _email: string }
+        Returns: {
+          email: string
+          gym_id: string
+          id: string
+          name: string
+        }[]
+      }
       get_user_gym_id: { Args: { _user_id: string }; Returns: string }
       has_gym_role: {
         Args: {
