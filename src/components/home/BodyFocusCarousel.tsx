@@ -32,7 +32,7 @@ export default function BodyFocusCarousel() {
       className="space-y-4"
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-foreground">Body Focus</h2>
+        <h2 className="text-base font-semibold text-foreground">Foco Muscular 🔥</h2>
         <Zap className="w-4 h-4 text-warning" />
       </div>
 
