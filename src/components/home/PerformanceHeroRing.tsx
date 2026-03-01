@@ -61,7 +61,7 @@ export default memo(function PerformanceHeroRing({ metrics }: Props) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative rounded-3xl overflow-hidden p-5 border border-primary/30"
+      className="relative rounded-3xl overflow-hidden p-4 border border-primary/30"
     >
       {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-card to-accent/10" />
@@ -84,27 +84,25 @@ export default memo(function PerformanceHeroRing({ metrics }: Props) {
         {/* Left side info */}
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "hsl(152 60% 50% / 0.15)" }}>
-              <Flame className="w-4 h-4" style={{ color: "hsl(152 60% 50%)" }} />
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsl(152 60% 50% / 0.15)" }}>
+              <Flame className="w-3.5 h-3.5" style={{ color: "hsl(152 60% 50%)" }} />
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Meta Diária
             </span>
           </div>
 
           <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-4xl font-extrabold tabular-nums text-foreground">{displayCal}</span>
-              <span className="text-sm text-muted-foreground font-medium">kcal</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-extrabold tabular-nums text-foreground">{displayCal}</span>
+              <span className="text-xs text-muted-foreground font-medium">kcal</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
               {!hasWorkoutToday
-                ? "Você ainda não treinou hoje. Comece um treino para bater sua meta."
-                : metrics.calories_burned <= 0
-                  ? "Treino concluído hoje, mas ainda sem calorias registradas nos logs."
-                  : remaining > 0
-                    ? `Faltam ${remaining} kcal para bater a meta`
-                    : "🔥 Meta atingida! Você é fera!"}
+                ? "Treine hoje para bater sua meta"
+                : remaining > 0
+                  ? `Faltam ${remaining} kcal`
+                  : "🔥 Meta atingida!"}
             </p>
           </div>
 
@@ -136,7 +134,7 @@ export default memo(function PerformanceHeroRing({ metrics }: Props) {
         </div>
 
         {/* Ring */}
-        <div className="relative w-36 h-36 flex items-center justify-center flex-shrink-0 ml-4">
+        <div className="relative w-28 h-28 flex items-center justify-center flex-shrink-0 ml-3">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
             <circle cx="80" cy="80" r={radius} fill="none" stroke="hsl(225 20% 14%)" strokeWidth="10" />
             <motion.circle
@@ -157,9 +155,9 @@ export default memo(function PerformanceHeroRing({ metrics }: Props) {
               </linearGradient>
             </defs>
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-extrabold tabular-nums text-foreground">{displayPct}%</span>
-            <span className="text-[10px] text-muted-foreground font-medium">da meta</span>
+           <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-xl font-extrabold tabular-nums text-foreground">{displayPct}%</span>
+            <span className="text-[9px] text-muted-foreground font-medium">da meta</span>
           </div>
         </div>
       </div>

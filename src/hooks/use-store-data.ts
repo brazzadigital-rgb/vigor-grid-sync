@@ -37,7 +37,7 @@ export interface StoreProduct {
   tags: string[];
   created_at: string;
   updated_at: string;
-  store_categories?: StoreCategory | null;
+  store_categories?: Partial<StoreCategory> | null;
 }
 
 export interface CartItem {

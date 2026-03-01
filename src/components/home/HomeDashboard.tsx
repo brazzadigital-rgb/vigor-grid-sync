@@ -15,6 +15,7 @@ import PerformanceDashboard from "./PerformanceDashboard";
 import PerformanceActivityChart from "./PerformanceActivityChart";
 import TrainerCard from "./TrainerCard";
 import BodyFocusCarousel from "./BodyFocusCarousel";
+import PromotionSlider from "./PromotionSlider";
 
 const getLocalDayIso = (date = new Date()) => {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -135,6 +136,9 @@ export default memo(function HomeDashboard() {
 
       {/* Performance Dashboard */}
       <PerformanceDashboard />
+
+      {/* Promotion Slider */}
+      <PromotionSlider />
 
       {/* Today's Workout */}
       {isLoading ? (
