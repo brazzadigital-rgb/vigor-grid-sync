@@ -1,40 +1,43 @@
 import { useState } from "react";
-import { Plus, Loader2, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Loader2, Edit, Trash2, MoreHorizontal, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useGymPlans } from "@/hooks/use-supabase-data";
 import { useCreatePlan, useUpdatePlan, useDeletePlan } from "@/hooks/use-admin-mutations";
+import { useGymCoaches } from "@/hooks/use-gym-coaches";
 
 const goalIcons: Record<string, string> = { hipertrofia: "💪", emagrecimento: "🔥", performance: "⚡", reabilitacao: "🩹", outro: "🎯" };
 const billingLabels: Record<string, string> = { monthly: "Mensal", semiannual: "Semestral", annual: "Anual", one_time: "Programa" };
 
 export default function AdminPlans() {
   const { data: plans, isLoading } = useGymPlans();
+  const { data: coaches } = useGymCoaches();
   const createPlan = useCreatePlan();
   const updatePlan = useUpdatePlan();
   const deletePlan = useDeletePlan();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", price_cents: 0, billing_cycle: "monthly", goal_type: "outro", level: "", duration_weeks: 4, active: true });
+  const [form, setForm] = useState({ name: "", price_cents: 0, billing_cycle: "monthly", goal_type: "outro", level: "", duration_weeks: 4, active: true, personal_trainer_id: "" });
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", price_cents: 0, billing_cycle: "monthly", goal_type: "outro", level: "", duration_weeks: 4, active: true });
+    setForm({ name: "", price_cents: 0, billing_cycle: "monthly", goal_type: "outro", level: "", duration_weeks: 4, active: true, personal_trainer_id: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (plan: any) => {
     setEditing(plan);
-    setForm({ name: plan.name, price_cents: plan.price_cents, billing_cycle: plan.billing_cycle, goal_type: plan.goal_type, level: plan.level ?? "", duration_weeks: plan.duration_weeks ?? 4, active: plan.active });
+    setForm({ name: plan.name, price_cents: plan.price_cents, billing_cycle: plan.billing_cycle, goal_type: plan.goal_type, level: plan.level ?? "", duration_weeks: plan.duration_weeks ?? 4, active: plan.active, personal_trainer_id: plan.personal_trainer_id ?? "" });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
+    const payload = { ...form, personal_trainer_id: form.personal_trainer_id || null };
     if (editing) {
-      await updatePlan.mutateAsync({ id: editing.id, ...form });
+      await updatePlan.mutateAsync({ id: editing.id, ...payload });
     } else {
-      await createPlan.mutateAsync(form as any);
+      await createPlan.mutateAsync(payload as any);
     }
     setDialogOpen(false);
   };
@@ -45,6 +48,11 @@ export default function AdminPlans() {
 
   const handleToggle = async (plan: any) => {
     await updatePlan.mutateAsync({ id: plan.id, active: !plan.active });
+  };
+
+  const getCoachName = (id: string | null) => {
+    if (!id) return null;
+    return coaches?.find((c) => c.id === id)?.name ?? null;
   };
 
   if (isLoading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
@@ -60,41 +68,50 @@ export default function AdminPlans() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {(plans ?? []).map((plan: any) => (
-          <div key={plan.id} className={`rounded-2xl border bg-card p-5 space-y-4 transition-all ${plan.active ? "border-border hover:border-primary/30" : "border-border/50 opacity-60"}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{goalIcons[plan.goal_type] ?? "🎯"}</span>
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground capitalize">{plan.goal_type} • {plan.level ?? "—"}</p>
+        {(plans ?? []).map((plan: any) => {
+          const trainerName = getCoachName(plan.personal_trainer_id);
+          return (
+            <div key={plan.id} className={`rounded-2xl border bg-card p-5 space-y-4 transition-all ${plan.active ? "border-border hover:border-primary/30" : "border-border/50 opacity-60"}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{goalIcons[plan.goal_type] ?? "🎯"}</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">{plan.name}</h3>
+                    <p className="text-xs text-muted-foreground capitalize">{plan.goal_type} • {plan.level ?? "—"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => handleToggle(plan)} className={`text-xs px-2 py-1 rounded-full cursor-pointer ${plan.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                    {plan.active ? "Ativo" : "Inativo"}
+                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><button className="p-1 rounded-lg hover:bg-secondary text-muted-foreground"><MoreHorizontal className="w-4 h-4" /></button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEdit(plan)}><Edit className="w-4 h-4 mr-2" /> Editar</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete(plan.id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Remover</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleToggle(plan)} className={`text-xs px-2 py-1 rounded-full cursor-pointer ${plan.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
-                  {plan.active ? "Ativo" : "Inativo"}
-                </button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild><button className="p-1 rounded-lg hover:bg-secondary text-muted-foreground"><MoreHorizontal className="w-4 h-4" /></button></DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => openEdit(plan)}><Edit className="w-4 h-4 mr-2" /> Editar</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDelete(plan.id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Remover</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="rounded-xl bg-secondary p-2">
+                  <p className="text-sm font-bold text-foreground">R$ {((plan.price_cents ?? 0) / 100).toFixed(0)}</p>
+                  <p className="text-xs text-muted-foreground">{billingLabels[plan.billing_cycle] ?? plan.billing_cycle}</p>
+                </div>
+                <div className="rounded-xl bg-secondary p-2">
+                  <p className="text-sm font-bold text-foreground">{plan.duration_weeks ?? "—"}s</p>
+                  <p className="text-xs text-muted-foreground">Duração</p>
+                </div>
               </div>
+              {trainerName && (
+                <div className="flex items-center gap-2 text-xs text-primary bg-primary/10 rounded-xl px-3 py-2 border border-primary/20">
+                  <User className="w-3.5 h-3.5" />
+                  <span className="font-medium">Personal: {trainerName}</span>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-xl bg-secondary p-2">
-                <p className="text-sm font-bold text-foreground">R$ {((plan.price_cents ?? 0) / 100).toFixed(0)}</p>
-                <p className="text-xs text-muted-foreground">{billingLabels[plan.billing_cycle] ?? plan.billing_cycle}</p>
-              </div>
-              <div className="rounded-xl bg-secondary p-2">
-                <p className="text-sm font-bold text-foreground">{plan.duration_weeks ?? "—"}s</p>
-                <p className="text-xs text-muted-foreground">Duração</p>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {(plans ?? []).length === 0 && (
           <div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center">
             <p className="text-sm text-muted-foreground">Nenhum plano criado</p>
@@ -150,6 +167,20 @@ export default function AdminPlans() {
               <label className="text-sm font-medium text-foreground">Duração (semanas)</label>
               <input type="number" value={form.duration_weeks} onChange={e => setForm({ ...form, duration_weeks: Number(e.target.value) })}
                 className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Personal Trainer</label>
+              <select
+                value={form.personal_trainer_id}
+                onChange={e => setForm({ ...form, personal_trainer_id: e.target.value })}
+                className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all"
+              >
+                <option value="">Sem personal</option>
+                {(coaches ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">Quando atribuído, o personal aparece na home do aluno</p>
             </div>
           </div>
           <DialogFooter>

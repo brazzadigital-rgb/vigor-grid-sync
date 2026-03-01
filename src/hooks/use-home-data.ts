@@ -145,7 +145,7 @@ export function useGymInfo() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("gyms")
-        .select("name, logo_url, accent_color")
+        .select("name, logo_url, accent_color, settings")
         .eq("id", profile!.gym_id!)
         .single();
       if (error) throw error;
