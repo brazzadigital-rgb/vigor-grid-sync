@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -43,6 +44,33 @@ export function useMyMembership() {
 
 export function useMyAssignedWorkouts() {
   const { user } = useAuth();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("my-assigned-workouts-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assigned_workouts", filter: `member_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["my-assigned-workouts", user.id] });
+          qc.invalidateQueries({ queryKey: ["my-sessions", user.id] });
+          qc.invalidateQueries({ queryKey: ["my-workout-stats", user.id] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "workout_sessions", filter: `member_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["my-sessions", user.id] });
+          qc.invalidateQueries({ queryKey: ["my-workout-stats", user.id] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, qc]);
+
   return useQuery({
     queryKey: ["my-assigned-workouts", user?.id],
     enabled: !!user,
