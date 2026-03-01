@@ -71,10 +71,14 @@ export default function WorkoutExecution() {
 
       // 2. Save workout_logs for each exercise with estimated calories & duration
       if (session && exercises.length > 0) {
-        const avgDurationPerExercise = Math.max(1, Math.round(elapsed / exercises.length));
+        const avgDurationPerExercise = Math.max(30, Math.round(elapsed / exercises.length));
         const logs = exercises.map((ex) => {
           const durationSecs = avgDurationPerExercise;
-          const calEst = Math.round((durationSecs / 60) * 8); // ~8 kcal/min fallback
+          // Estimate calories: at least 3 kcal per set performed, or ~8 kcal/min
+          const repsNum = parseInt(String(ex.reps)) || 12;
+          const calFromSets = ex.sets * repsNum * 0.4; // ~0.4 kcal per rep
+          const calFromDuration = Math.round((durationSecs / 60) * 8);
+          const calEst = Math.max(Math.round(calFromSets), calFromDuration, ex.sets * 3);
           return {
             session_id: session.id,
             exercise_id: ex.exerciseId || null,
