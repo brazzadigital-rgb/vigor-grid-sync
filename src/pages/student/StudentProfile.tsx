@@ -8,8 +8,8 @@ import { useMyMembership, useMyWorkoutStats, useMyCredential } from "@/hooks/use
 
 const menuItems = [
   { icon: Edit, label: "Editar Perfil", description: "Foto, nome e dados", to: "/app/profile/settings" },
+  { icon: Crown, label: "Meu Plano", description: "Detalhes e upgrade", to: "/app/profile/plan", accent: true },
   { icon: Bell, label: "Notificações", description: "Alertas e lembretes", to: "/app/profile/notifications" },
-  { icon: Crown, label: "Go Premium", description: "Upgrade seu plano", to: "/app/profile/premium", accent: true },
   { icon: MessageCircle, label: "Fale com seu PT", description: "Mensagem ao coach", to: "/app/profile/chat" },
   { icon: Ruler, label: "Minhas Medidas", description: "Peso, BF e medidas", to: "/app/profile/progress" },
   { icon: Target, label: "Meus Objetivos", description: "Acompanhe suas metas", to: "/app/goals" },
