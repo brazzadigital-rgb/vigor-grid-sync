@@ -49,19 +49,22 @@ export default function PerformanceHeroRing({ metrics }: Props) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative rounded-3xl overflow-hidden p-5"
-      style={{
-        background: "linear-gradient(145deg, hsl(152 60% 12% / 0.6), hsl(225 25% 9%), hsl(225 30% 6%))",
-      }}
+      className="relative rounded-3xl overflow-hidden p-5 border border-primary/30"
     >
-      {/* Glow overlay */}
-      <div className="absolute inset-0 opacity-30" style={{
-        background: "radial-gradient(circle at 70% 40%, hsl(152 60% 50% / 0.15), transparent 60%)",
-      }} />
+      {/* Animated gradient background — same style as "Meu Plano" */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-card to-accent/10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer pointer-events-none" />
+
+      {/* Floating orbs */}
+      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-3xl animate-pulse" />
+      <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-success/10 blur-2xl animate-pulse" style={{ animationDelay: "1s" }} />
+
+      {/* Neon green glow on ring side */}
+      <div className="absolute top-1/2 right-12 -translate-y-1/2 w-28 h-28 rounded-full blur-3xl opacity-20" style={{ background: "hsl(152 60% 50%)" }} />
 
       {isHot && (
         <div className="absolute inset-0 animate-pulse-glow" style={{
-          background: "radial-gradient(circle at 70% 40%, hsl(152 60% 50% / 0.08), transparent 50%)",
+          background: "radial-gradient(circle at 70% 40%, hsl(152 60% 50% / 0.1), transparent 50%)",
         }} />
       )}
 
