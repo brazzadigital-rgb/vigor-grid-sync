@@ -42,12 +42,21 @@ export default function HomeDashboard() {
     },
   });
 
-  const todayWorkout = assignedWorkouts?.[0];
   const getLocalDayIso = (date = new Date()) => {
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     return local.toISOString().slice(0, 10);
   };
   const todayStr = getLocalDayIso();
+
+  // Prefer a workout that hasn't been done today; fallback to first
+  const todayWorkout = (() => {
+    if (!assignedWorkouts || assignedWorkouts.length === 0) return undefined;
+    const notDoneToday = assignedWorkouts.find(w =>
+      !(sessions ?? []).some(s => s.status === "done" && s.date === todayStr && s.assigned_workout_id === w.id)
+    );
+    return notDoneToday ?? assignedWorkouts[0];
+  })();
+
   const isTodayWorkoutDone = todayWorkout
     ? (sessions ?? []).some(s => s.status === "done" && s.date === todayStr && s.assigned_workout_id === todayWorkout.id)
     : false;
