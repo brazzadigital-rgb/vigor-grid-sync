@@ -1,21 +1,39 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Pause, Play, SkipForward, Check, Timer } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const exercises = [
-  { name: "Supino Reto — Barra", sets: 4, reps: "10-12", rest: 90 },
-  { name: "Supino Inclinado — Halteres", sets: 3, reps: "12", rest: 60 },
-  { name: "Crucifixo — Máquina", sets: 3, reps: "15", rest: 45 },
-  { name: "Crossover — Cabo", sets: 3, reps: "15", rest: 45 },
-  { name: "Tríceps Corda — Cabo", sets: 4, reps: "12", rest: 60 },
-  { name: "Tríceps Francês — Haltere", sets: 3, reps: "12", rest: 60 },
-  { name: "Mergulho — Paralelas", sets: 3, reps: "Max", rest: 90 },
-  { name: "Extensão de Tríceps — Máquina", sets: 3, reps: "15", rest: 45 },
-];
+import { useMyAssignedWorkouts, useWorkoutDays } from "@/hooks/use-supabase-data";
+import { useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function WorkoutExecution() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const { profile } = useAuth();
+  const { data: assigned } = useMyAssignedWorkouts();
+
+  const workout = assigned?.find(w => w.id === id);
+  const templateId = workout?.template_id;
+  const { data: days, isLoading } = useWorkoutDays(templateId);
+
+  // Flatten all exercises from all days
+  const exercises = (days ?? [])
+    .sort((a, b) => a.day_index - b.day_index)
+    .flatMap(d =>
+      (d.workout_items ?? [])
+        .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0))
+        .map((item: any) => ({
+          id: item.id,
+          exerciseId: item.exercise_id,
+          name: item.exercises?.name ?? "Exercício",
+          sets: item.sets ?? 3,
+          reps: item.reps ?? "12",
+          rest: item.rest_seconds ?? 60,
+          dayTitle: d.title,
+        }))
+    );
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
@@ -26,7 +44,22 @@ export default function WorkoutExecution() {
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
   const exercise = exercises[currentIndex];
-  const progress = ((currentIndex) / exercises.length) * 100;
+  const progress = exercises.length > 0 ? ((currentIndex) / exercises.length) * 100 : 0;
+
+  // Save workout session mutation
+  const saveSession = useMutation({
+    mutationFn: async () => {
+      if (!workout || !profile?.gym_id) return;
+      const { error } = await supabase.from("workout_sessions").insert({
+        member_id: profile.id,
+        gym_id: profile.gym_id,
+        assigned_workout_id: workout.id,
+        date: new Date().toISOString().split("T")[0],
+        status: "done" as const,
+      });
+      if (error) throw error;
+    },
+  });
 
   useEffect(() => {
     if (finished || isPaused) return;
@@ -48,6 +81,7 @@ export default function WorkoutExecution() {
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   const handleCompleteSet = () => {
+    if (!exercise) return;
     if (currentSet < exercise.sets) {
       setCurrentSet((s) => s + 1);
       setIsResting(true);
@@ -65,8 +99,26 @@ export default function WorkoutExecution() {
       setRestTime(0);
     } else {
       setFinished(true);
+      saveSession.mutate();
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="px-5 pt-14 pb-6 max-w-lg mx-auto flex items-center justify-center min-h-[80vh]">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (exercises.length === 0) {
+    return (
+      <div className="px-5 pt-14 pb-6 max-w-lg mx-auto flex flex-col items-center justify-center min-h-[80vh] space-y-4 text-center">
+        <p className="text-sm text-muted-foreground">Nenhum exercício encontrado neste treino</p>
+        <Button variant="outline" onClick={() => navigate(-1)}>Voltar</Button>
+      </div>
+    );
+  }
 
   if (finished) {
     return (
@@ -75,7 +127,7 @@ export default function WorkoutExecution() {
           <Check className="w-10 h-10 text-success" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Treino Concluído! 🎉</h1>
-        <div className="grid grid-cols-3 gap-4 w-full">
+        <div className="grid grid-cols-2 gap-4 w-full">
           <div className="rounded-2xl border border-border bg-card p-4 text-center">
             <p className="text-lg font-bold text-foreground">{formatTime(elapsed)}</p>
             <p className="text-xs text-muted-foreground">Duração</p>
@@ -83,10 +135,6 @@ export default function WorkoutExecution() {
           <div className="rounded-2xl border border-border bg-card p-4 text-center">
             <p className="text-lg font-bold text-foreground">{exercises.length}</p>
             <p className="text-xs text-muted-foreground">Exercícios</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4 text-center">
-            <p className="text-lg font-bold text-primary">~320</p>
-            <p className="text-xs text-muted-foreground">Calorias</p>
           </div>
         </div>
         <Button variant="glow" size="lg" className="w-full" onClick={() => navigate("/app/workouts")}>
@@ -127,7 +175,7 @@ export default function WorkoutExecution() {
       )}
 
       {/* Current Exercise */}
-      {!isResting && (
+      {!isResting && exercise && (
         <div className="rounded-2xl border border-primary/20 bg-card p-6 space-y-4 glow-purple">
           <div className="text-center space-y-2">
             <p className="text-xs text-primary font-medium uppercase tracking-wider">Exercício {currentIndex + 1}</p>
@@ -149,29 +197,13 @@ export default function WorkoutExecution() {
 
       {/* Controls */}
       <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-14 w-14 rounded-2xl"
-          onClick={() => setIsPaused(!isPaused)}
-        >
+        <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl" onClick={() => setIsPaused(!isPaused)}>
           {isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
         </Button>
-        <Button
-          variant="glow"
-          size="lg"
-          className="flex-1 h-14"
-          onClick={handleCompleteSet}
-          disabled={isResting}
-        >
-          {currentSet < exercise.sets ? "Concluir Série" : "Próximo Exercício"}
+        <Button variant="glow" size="lg" className="flex-1 h-14" onClick={handleCompleteSet} disabled={isResting}>
+          {exercise && currentSet < exercise.sets ? "Concluir Série" : "Próximo Exercício"}
         </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-14 w-14 rounded-2xl"
-          onClick={handleNext}
-        >
+        <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl" onClick={handleNext}>
           <SkipForward className="w-6 h-6" />
         </Button>
       </div>

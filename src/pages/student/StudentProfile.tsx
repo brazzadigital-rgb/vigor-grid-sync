@@ -1,20 +1,19 @@
-import { User, CreditCard, QrCode, Settings, LogOut, ChevronRight, Shield, TrendingUp, Loader2 } from "lucide-react";
+import { User, CreditCard, QrCode, Settings, LogOut, ChevronRight, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyMembership, useMyWorkoutStats, useMyCredential } from "@/hooks/use-supabase-data";
 
 const menuItems = [
-  { icon: TrendingUp, label: "Progresso", description: "Gráficos e evolução", to: "#" },
-  { icon: CreditCard, label: "Pagamentos", description: "Histórico e plano", to: "#" },
-  { icon: QrCode, label: "Credencial", description: "QR Code de acesso", to: "#" },
-  { icon: Shield, label: "Privacidade", description: "Dados e segurança", to: "#" },
-  { icon: Settings, label: "Configurações", description: "Preferências", to: "#" },
+  { icon: TrendingUp, label: "Progresso", description: "Gráficos e evolução", to: "/app/profile/progress" },
+  { icon: CreditCard, label: "Pagamentos", description: "Histórico e plano", to: "/app/profile/payments" },
+  { icon: QrCode, label: "Credencial", description: "QR Code de acesso", to: "/app/profile/credential" },
+  { icon: Settings, label: "Configurações", description: "Editar perfil", to: "/app/profile/settings" },
 ];
 
 export default function StudentProfile() {
   const navigate = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isStaff } = useAuth();
   const { data: membership } = useMyMembership();
   const { data: stats } = useMyWorkoutStats();
   const { data: credential } = useMyCredential();
@@ -57,7 +56,10 @@ export default function StudentProfile() {
       </div>
 
       {/* QR Code Card */}
-      <div className="rounded-2xl border border-primary/20 bg-card p-6 text-center space-y-3 glow-purple">
+      <div
+        className="rounded-2xl border border-primary/20 bg-card p-6 text-center space-y-3 glow-purple cursor-pointer hover:border-primary/40 transition-all"
+        onClick={() => navigate("/app/profile/credential")}
+      >
         <QrCode className="w-20 h-20 mx-auto text-primary" />
         <p className="text-sm font-medium text-foreground">Credencial de Acesso</p>
         <p className="text-xs text-muted-foreground">Apresente na catraca para entrar</p>
@@ -87,6 +89,7 @@ export default function StudentProfile() {
         {menuItems.map((item) => (
           <div
             key={item.label}
+            onClick={() => navigate(item.to)}
             className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 transition-all"
           >
             <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
@@ -100,6 +103,13 @@ export default function StudentProfile() {
           </div>
         ))}
       </div>
+
+      {/* Admin Link */}
+      {isStaff && (
+        <Button variant="outline" className="w-full" onClick={() => navigate("/admin")}>
+          Painel Administrativo
+        </Button>
+      )}
 
       <Button variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/10" onClick={handleLogout}>
         <LogOut className="w-4 h-4" /> Sair
