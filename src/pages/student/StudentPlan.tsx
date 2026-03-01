@@ -119,13 +119,13 @@ export default function StudentPlan() {
                 </div>
               </div>
               <span className={cn(
-                "text-xs font-medium px-3 py-1.5 rounded-full border",
+                "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap shrink-0",
                 membership?.status === "active"
                   ? "bg-success/15 text-success border-success/20"
                   : "bg-warning/15 text-warning border-warning/20"
               )}>
                 <span className={cn(
-                  "inline-block w-1.5 h-1.5 rounded-full mr-1.5",
+                  "w-1.5 h-1.5 rounded-full shrink-0",
                   membership?.status === "active" ? "bg-success" : "bg-warning"
                 )} />
                 {membership?.status === "active" ? "Ativo" : "Inativo"}
