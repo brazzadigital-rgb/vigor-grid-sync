@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Dumbbell, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import onboarding1 from "@/assets/onboarding-1.jpg";
@@ -27,13 +28,14 @@ const slides = [
 export default function OnboardingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
+  const { session } = useAuth();
 
   const isLast = currentSlide === slides.length - 1;
 
   const handleNext = () => {
     if (isLast) {
       localStorage.setItem("onboarding_done", "true");
-      navigate("/login");
+      navigate(session ? "/onboarding" : "/login");
     } else {
       setCurrentSlide((prev) => prev + 1);
     }
@@ -41,7 +43,7 @@ export default function OnboardingPage() {
 
   const handleSkip = () => {
     localStorage.setItem("onboarding_done", "true");
-    navigate("/login");
+    navigate(session ? "/onboarding" : "/login");
   };
 
   const slide = slides[currentSlide];
