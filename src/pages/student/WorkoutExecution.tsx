@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyAssignedWorkouts, useWorkoutDays, useMyWorkoutSessions } from "@/hooks/use-supabase-data";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,6 +11,7 @@ export default function WorkoutExecution() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const { data: assigned } = useMyAssignedWorkouts();
   const { data: sessions } = useMyWorkoutSessions();
 
@@ -57,14 +58,44 @@ export default function WorkoutExecution() {
   const saveSession = useMutation({
     mutationFn: async () => {
       if (!workout || !profile?.gym_id) return;
-      const { error } = await supabase.from("workout_sessions").insert({
+
+      // 1. Create the session
+      const { data: session, error } = await supabase.from("workout_sessions").insert({
         member_id: profile.id,
         gym_id: profile.gym_id,
         assigned_workout_id: workout.id,
         date: new Date().toISOString().split("T")[0],
         status: "done" as const,
-      });
+      }).select("id").single();
       if (error) throw error;
+
+      // 2. Save workout_logs for each exercise with estimated calories & duration
+      if (session && exercises.length > 0) {
+        const avgDurationPerExercise = Math.max(1, Math.round(elapsed / exercises.length));
+        const logs = exercises.map((ex) => {
+          const durationSecs = avgDurationPerExercise;
+          const calEst = Math.round((durationSecs / 60) * 8); // ~8 kcal/min fallback
+          return {
+            session_id: session.id,
+            exercise_id: ex.exerciseId || null,
+            duration_seconds: durationSecs,
+            calories_estimated: calEst,
+            performed_sets: JSON.stringify(
+              Array.from({ length: ex.sets }, (_, i) => ({
+                set: i + 1,
+                reps: ex.reps,
+                completed: true,
+              }))
+            ),
+          };
+        });
+        await supabase.from("workout_logs").insert(logs);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["daily-metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["hourly-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["my-workout-sessions"] });
     },
   });
 
