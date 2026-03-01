@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dumbbell, Zap, X, Info } from "lucide-react";
+import { Dumbbell, Zap, X, Info, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
 import { useBodyFocusExercises } from "@/hooks/use-home-data";
 
 const categories = [
@@ -43,6 +43,20 @@ const ExerciseCard = memo(function ExerciseCard({ ex, i, onSelect }: { ex: any; 
 });
 
 const ExerciseDetail = memo(function ExerciseDetail({ ex, onClose }: { ex: any; onClose: () => void }) {
+  const [showTips, setShowTips] = useState(false);
+
+  // Parse instructions the same way as WorkoutExecution
+  const parsedInstructions = useMemo(() => {
+    if (!ex.instructions) return null;
+    try {
+      const parsed = JSON.parse(ex.instructions);
+      if (parsed.steps || parsed.tips) return parsed;
+    } catch {}
+    // Plain text fallback: split by newlines or numbered items
+    const lines = ex.instructions.split(/\n|(?=\d+\.\s)/).map((l: string) => l.replace(/^\d+\.\s*/, "").trim()).filter(Boolean);
+    return lines.length > 0 ? { steps: lines, tips: null } : null;
+  }, [ex.instructions]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -99,15 +113,29 @@ const ExerciseDetail = memo(function ExerciseDetail({ ex, onClose }: { ex: any; 
             </div>
           </div>
 
-          {ex.instructions && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <Info className="w-3.5 h-3.5 text-primary" />
-                Instruções
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
-                {ex.instructions}
-              </p>
+          {parsedInstructions && (
+            <div className="border-t border-border pt-3">
+              <button onClick={() => setShowTips(!showTips)} className="flex items-center gap-2 text-xs text-primary font-medium w-full justify-center">
+                <Lightbulb className="w-3.5 h-3.5" />
+                {showTips ? "Ocultar dicas" : "Ver como executar"}
+                {showTips ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              {showTips && (
+                <div className="mt-3 space-y-2 animate-slide-up text-left">
+                  {parsedInstructions.steps?.map((step: string, i: number) => (
+                    <p key={i} className="text-xs text-muted-foreground">
+                      <span className="text-primary font-semibold">{i + 1}.</span> {step}
+                    </p>
+                  ))}
+                  {parsedInstructions.tips && (
+                    <div className="pt-2 space-y-1">
+                      {parsedInstructions.tips.map((tip: string, i: number) => (
+                        <p key={i} className="text-xs text-warning/80">💡 {tip}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
