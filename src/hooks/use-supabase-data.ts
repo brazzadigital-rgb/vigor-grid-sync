@@ -290,6 +290,22 @@ export function useGymDevices() {
   });
 }
 
+export function useGymAssignedWorkouts() {
+  const { profile } = useAuth();
+  return useQuery({
+    queryKey: ["gym-assigned-workouts", profile?.gym_id],
+    enabled: !!profile?.gym_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assigned_workouts")
+        .select("*, workout_templates(name), profiles(name)")
+        .eq("gym_id", profile!.gym_id!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useGymExercises() {
   const { profile } = useAuth();
   return useQuery({
