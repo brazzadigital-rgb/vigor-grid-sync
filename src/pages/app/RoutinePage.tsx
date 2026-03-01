@@ -1,5 +1,6 @@
 import { PlayCircle, Clock, Flame, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function RoutinePage() {
   return (
@@ -32,10 +33,12 @@ export default function RoutinePage() {
           </div>
         </div>
 
-        <Button variant="glow" size="lg" className="w-full" disabled>
-          Iniciar Treino
-          <ChevronRight className="w-4 h-4" />
-        </Button>
+        <Link to="/app/routine/execute">
+          <Button variant="glow" size="lg" className="w-full">
+            Iniciar Treino
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </Link>
       </div>
 
       {/* Recent */}

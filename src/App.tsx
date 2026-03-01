@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -16,11 +16,30 @@ import LoginPage from "./pages/auth/LoginPage";
 import AppLayout from "./layouts/AppLayout";
 import HomePage from "./pages/app/HomePage";
 import ExercisesPage from "./pages/app/ExercisesPage";
+import ExerciseTimerPage from "./pages/app/ExerciseTimerPage";
 import RoutinePage from "./pages/app/RoutinePage";
+import RoutineExecutionPage from "./pages/app/RoutineExecutionPage";
 import GoalsPage from "./pages/app/GoalsPage";
+import NewGoalPage from "./pages/app/NewGoalPage";
 import AICoachPage from "./pages/app/AICoachPage";
+import AIChatPage from "./pages/app/AIChatPage";
+import AICoachDashboardPage from "./pages/app/AICoachDashboardPage";
+import AIFeedbackPage from "./pages/app/AIFeedbackPage";
 import ProfilePage from "./pages/app/ProfilePage";
+import EditProfilePage from "./pages/app/EditProfilePage";
+import MeasurementsPage from "./pages/app/MeasurementsPage";
+import BadgesPage from "./pages/app/BadgesPage";
+import NotificationsPage from "./pages/app/NotificationsPage";
+import PremiumPage from "./pages/app/PremiumPage";
+import TalkToPTPage from "./pages/app/TalkToPTPage";
 import SettingsPage from "./pages/app/SettingsPage";
+import ChangePasswordPage from "./pages/app/settings/ChangePasswordPage";
+import AIStylePage from "./pages/app/settings/AIStylePage";
+import UnitsPage from "./pages/app/settings/UnitsPage";
+import ManageDataPage from "./pages/app/settings/ManageDataPage";
+import PrivacyPolicyPage from "./pages/app/settings/PrivacyPolicyPage";
+import TermsPage from "./pages/app/settings/TermsPage";
+import DeleteAccountPage from "./pages/app/settings/DeleteAccountPage";
 
 // Admin
 import AdminLayout from "./layouts/AdminLayout";
@@ -53,7 +72,7 @@ const App = () => (
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Main App — protected */}
+            {/* Main App — protected, with bottom nav */}
             <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<HomePage />} />
               <Route path="exercises" element={<ExercisesPage />} />
@@ -62,17 +81,28 @@ const App = () => (
               <Route path="ai-coach" element={<AICoachPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="profile/settings" element={<SettingsPage />} />
-              {/* Placeholder routes for sub-pages */}
-              <Route path="profile/edit" element={<ProfilePage />} />
-              <Route path="profile/measurements" element={<ProfilePage />} />
-              <Route path="profile/badges" element={<ProfilePage />} />
-              <Route path="notifications" element={<HomePage />} />
-              <Route path="goals/new" element={<GoalsPage />} />
-              <Route path="ai-coach/chat" element={<AICoachPage />} />
-              <Route path="ai-coach/dashboard" element={<AICoachPage />} />
-              <Route path="ai-coach/feedback" element={<AICoachPage />} />
-              <Route path="exercises/timer" element={<ExercisesPage />} />
+              <Route path="profile/edit" element={<EditProfilePage />} />
+              <Route path="profile/measurements" element={<MeasurementsPage />} />
+              <Route path="profile/badges" element={<BadgesPage />} />
+              <Route path="profile/talk-pt" element={<TalkToPTPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="premium" element={<PremiumPage />} />
+              <Route path="goals/new" element={<NewGoalPage />} />
+              <Route path="ai-coach/dashboard" element={<AICoachDashboardPage />} />
+              <Route path="ai-coach/feedback" element={<AIFeedbackPage />} />
+              <Route path="profile/settings/password" element={<ChangePasswordPage />} />
+              <Route path="profile/settings/ai-style" element={<AIStylePage />} />
+              <Route path="profile/settings/units" element={<UnitsPage />} />
+              <Route path="profile/settings/data" element={<ManageDataPage />} />
+              <Route path="profile/settings/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="profile/settings/terms" element={<TermsPage />} />
+              <Route path="profile/settings/delete" element={<DeleteAccountPage />} />
             </Route>
+
+            {/* Full-screen routes (no bottom nav) */}
+            <Route path="/app/exercises/timer" element={<ProtectedRoute><ExerciseTimerPage /></ProtectedRoute>} />
+            <Route path="/app/routine/execute" element={<ProtectedRoute><RoutineExecutionPage /></ProtectedRoute>} />
+            <Route path="/app/ai-coach/chat" element={<ProtectedRoute><AIChatPage /></ProtectedRoute>} />
 
             {/* Admin ERP — protected + staff */}
             <Route path="/admin" element={<ProtectedRoute requireStaff><AdminLayout /></ProtectedRoute>}>
