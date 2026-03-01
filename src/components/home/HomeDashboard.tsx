@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyMembership, useMyAssignedWorkouts, useMyWorkoutSessions, useMyWorkoutStats } from "@/hooks/use-supabase-data";
 import { useGymInfo } from "@/hooks/use-home-data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "./NotificationBell";
@@ -21,6 +23,24 @@ export default function HomeDashboard() {
   const { data: sessions } = useMyWorkoutSessions();
   const { data: stats } = useMyWorkoutStats();
   const { data: gym } = useGymInfo();
+
+  const heroImage = (gym?.settings as any)?.hero_image_url || homeHero;
+  const personalTrainerId = (membership?.plans as any)?.personal_trainer_id;
+
+  // Fetch personal trainer profile if plan has one
+  const { data: trainerProfile } = useQuery({
+    queryKey: ["personal-trainer", personalTrainerId],
+    enabled: !!personalTrainerId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, avatar_url")
+        .eq("id", personalTrainerId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const todayWorkout = assignedWorkouts?.[0];
   const todayStr = new Date().toISOString().split("T")[0];
@@ -41,7 +61,7 @@ export default function HomeDashboard() {
     <div className="relative max-w-lg mx-auto space-y-5">
       {/* Hero background image */}
       <div className="absolute top-0 left-0 right-0 h-64 overflow-hidden">
-        <img src={homeHero} alt="" className="w-full h-full object-cover" />
+        <img src={heroImage} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
       </div>
 
@@ -155,6 +175,11 @@ export default function HomeDashboard() {
           <p className="text-sm text-muted-foreground">Nenhum treino atribuído ainda</p>
           <p className="text-xs text-muted-foreground/60">Seu coach vai montar seu treino em breve</p>
         </motion.div>
+      )}
+
+      {/* Personal Trainer */}
+      {trainerProfile && (
+        <TrainerCard coachName={trainerProfile.name} coachAvatar={trainerProfile.avatar_url} />
       )}
 
       {/* Activity compact */}

@@ -40,6 +40,7 @@ import AdminAccessControl from "./pages/admin/AdminAccessControl";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminPersonalTrainers from "./pages/admin/AdminPersonalTrainers";
 import AdminStoreDashboard from "./pages/admin/AdminStoreDashboard";
 import AdminStoreCategories from "./pages/admin/AdminStoreCategories";
 import AdminStoreProducts from "./pages/admin/AdminStoreProducts";
@@ -96,6 +97,7 @@ const App = () => (
               <Route path="programs/:id" element={<AdminProgramDetail />} />
               <Route path="plans" element={<AdminPlans />} />
               <Route path="payments" element={<AdminPayments />} />
+              <Route path="trainers" element={<AdminPersonalTrainers />} />
               <Route path="access" element={<AdminAccessControl />} />
               <Route path="reports" element={<AdminReports />} />
               <Route path="integrations" element={<AdminIntegrations />} />

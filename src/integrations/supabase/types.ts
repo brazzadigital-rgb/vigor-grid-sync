@@ -673,6 +673,7 @@ export type Database = {
           id: string
           level: string | null
           name: string
+          personal_trainer_id: string | null
           price_cents: number
         }
         Insert: {
@@ -686,6 +687,7 @@ export type Database = {
           id?: string
           level?: string | null
           name: string
+          personal_trainer_id?: string | null
           price_cents?: number
         }
         Update: {
@@ -699,6 +701,7 @@ export type Database = {
           id?: string
           level?: string | null
           name?: string
+          personal_trainer_id?: string | null
           price_cents?: number
         }
         Relationships: [
@@ -707,6 +710,13 @@ export type Database = {
             columns: ["gym_id"]
             isOneToOne: false
             referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plans_personal_trainer_id_fkey"
+            columns: ["personal_trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
