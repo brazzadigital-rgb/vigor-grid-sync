@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2 } from "lucide-react";
+import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyAssignedWorkouts, useWorkoutDays } from "@/hooks/use-supabase-data";
 import { useMutation } from "@tanstack/react-query";
@@ -17,7 +17,6 @@ export default function WorkoutExecution() {
   const templateId = workout?.template_id;
   const { data: days, isLoading } = useWorkoutDays(templateId);
 
-  // Flatten all exercises from all days
   const exercises = (days ?? [])
     .sort((a, b) => a.day_index - b.day_index)
     .flatMap(d =>
@@ -31,6 +30,8 @@ export default function WorkoutExecution() {
           reps: item.reps ?? "12",
           rest: item.rest_seconds ?? 60,
           dayTitle: d.title,
+          mediaUrl: item.exercises?.media_url ?? null,
+          instructions: item.exercises?.instructions ?? null,
         }))
     );
 
@@ -41,12 +42,12 @@ export default function WorkoutExecution() {
   const [restTime, setRestTime] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
   const exercise = exercises[currentIndex];
   const progress = exercises.length > 0 ? ((currentIndex) / exercises.length) * 100 : 0;
 
-  // Save workout session mutation
   const saveSession = useMutation({
     mutationFn: async () => {
       if (!workout || !profile?.gym_id) return;
@@ -67,10 +68,7 @@ export default function WorkoutExecution() {
       setElapsed((e) => e + 1);
       if (isResting) {
         setRestTime((r) => {
-          if (r <= 1) {
-            setIsResting(false);
-            return 0;
-          }
+          if (r <= 1) { setIsResting(false); return 0; }
           return r - 1;
         });
       }
@@ -92,6 +90,7 @@ export default function WorkoutExecution() {
   };
 
   const handleNext = () => {
+    setShowTips(false);
     if (currentIndex < exercises.length - 1) {
       setCurrentIndex((i) => i + 1);
       setCurrentSet(1);
@@ -102,6 +101,12 @@ export default function WorkoutExecution() {
       saveSession.mutate();
     }
   };
+
+  // Parse instructions
+  const parsedInstructions = (() => {
+    if (!exercise?.instructions) return null;
+    try { return JSON.parse(exercise.instructions); } catch { return null; }
+  })();
 
   if (isLoading) {
     return (
@@ -145,7 +150,7 @@ export default function WorkoutExecution() {
   }
 
   return (
-    <div className="px-5 pt-14 pb-6 max-w-lg mx-auto space-y-6">
+    <div className="px-5 pt-12 pb-6 max-w-lg mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-secondary text-foreground">
@@ -176,21 +181,61 @@ export default function WorkoutExecution() {
 
       {/* Current Exercise */}
       {!isResting && exercise && (
-        <div className="rounded-2xl border border-primary/20 bg-card p-6 space-y-4 glow-purple">
-          <div className="text-center space-y-2">
-            <p className="text-xs text-primary font-medium uppercase tracking-wider">Exercício {currentIndex + 1}</p>
-            <h2 className="text-xl font-bold text-foreground">{exercise.name}</h2>
-          </div>
-          <div className="flex items-center justify-center gap-6 text-center">
-            <div>
-              <p className="text-2xl font-bold text-foreground">{exercise.reps}</p>
-              <p className="text-xs text-muted-foreground">Reps</p>
+        <div className="rounded-2xl border border-primary/20 bg-card overflow-hidden glow-purple">
+          {/* Exercise Image */}
+          {exercise.mediaUrl && (
+            <div className="w-full h-48 bg-secondary overflow-hidden">
+              <img
+                src={exercise.mediaUrl}
+                alt={exercise.name}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
             </div>
-            <div className="w-px h-10 bg-border" />
-            <div>
-              <p className="text-2xl font-bold text-primary">{currentSet}/{exercise.sets}</p>
-              <p className="text-xs text-muted-foreground">Série</p>
+          )}
+          <div className="p-6 space-y-4">
+            <div className="text-center space-y-2">
+              <p className="text-xs text-primary font-medium uppercase tracking-wider">Exercício {currentIndex + 1}</p>
+              <h2 className="text-xl font-bold text-foreground">{exercise.name}</h2>
             </div>
+            <div className="flex items-center justify-center gap-6 text-center">
+              <div>
+                <p className="text-2xl font-bold text-foreground">{exercise.reps}</p>
+                <p className="text-xs text-muted-foreground">Reps</p>
+              </div>
+              <div className="w-px h-10 bg-border" />
+              <div>
+                <p className="text-2xl font-bold text-primary">{currentSet}/{exercise.sets}</p>
+                <p className="text-xs text-muted-foreground">Série</p>
+              </div>
+            </div>
+
+            {/* Tips toggle */}
+            {parsedInstructions && (
+              <div className="border-t border-border pt-3">
+                <button onClick={() => setShowTips(!showTips)} className="flex items-center gap-2 text-xs text-primary font-medium w-full justify-center">
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  {showTips ? "Ocultar dicas" : "Ver como executar"}
+                  {showTips ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+                {showTips && (
+                  <div className="mt-3 space-y-2 animate-slide-up text-left">
+                    {parsedInstructions.steps?.map((step: string, i: number) => (
+                      <p key={i} className="text-xs text-muted-foreground">
+                        <span className="text-primary font-semibold">{i + 1}.</span> {step}
+                      </p>
+                    ))}
+                    {parsedInstructions.tips && (
+                      <div className="pt-2 space-y-1">
+                        {parsedInstructions.tips.map((tip: string, i: number) => (
+                          <p key={i} className="text-xs text-warning/80">💡 {tip}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -213,8 +258,11 @@ export default function WorkoutExecution() {
         <p className="text-xs text-muted-foreground font-medium">Próximos</p>
         {exercises.slice(currentIndex + 1, currentIndex + 4).map((ex, i) => (
           <div key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span className="w-6 text-xs">{currentIndex + 2 + i}.</span>
-            <span className="truncate">{ex.name}</span>
+            {ex.mediaUrl && (
+              <img src={ex.mediaUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+            )}
+            {!ex.mediaUrl && <span className="w-8 text-xs text-center">{currentIndex + 2 + i}.</span>}
+            <span className="truncate flex-1">{ex.name}</span>
             <span className="ml-auto text-xs">{ex.sets}×{ex.reps}</span>
           </div>
         ))}
