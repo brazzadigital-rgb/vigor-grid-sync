@@ -1,41 +1,94 @@
-import { Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGymSettings } from "@/hooks/use-supabase-data";
+import { useUpdateGym } from "@/hooks/use-admin-mutations";
 
 export default function AdminSettings() {
+  const { data: gym, isLoading } = useGymSettings();
+  const updateGym = useUpdateGym();
+  const [name, setName] = useState("");
+  const [accentColor, setAccentColor] = useState("#7148EC");
+  const [timezone, setTimezone] = useState("America/Sao_Paulo");
+  const [settings, setSettings] = useState<any>({});
+
+  useEffect(() => {
+    if (gym) {
+      setName(gym.name ?? "");
+      setAccentColor(gym.accent_color ?? "#7148EC");
+      setTimezone(gym.timezone ?? "America/Sao_Paulo");
+      setSettings(gym.settings ?? {});
+    }
+  }, [gym]);
+
+  const handleSave = async () => {
+    await updateGym.mutateAsync({ name, accent_color: accentColor, timezone, settings });
+  };
+
+  const toggleSetting = (key: string) => {
+    setSettings((prev: any) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  if (isLoading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
+
   return (
     <div className="space-y-6 animate-slide-up">
-      <h2 className="text-xl font-bold text-foreground">Configurações</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-foreground">Configurações</h2>
+        <Button size="sm" onClick={handleSave} disabled={updateGym.isPending}>
+          {updateGym.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Salvar</>}
+        </Button>
+      </div>
 
       <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
         <h3 className="text-base font-semibold text-foreground">Dados da Academia</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Nome</label>
-            <input defaultValue="FitPro Academy" className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all" />
+            <input value={name} onChange={e => setName(e.target.value)}
+              className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all" />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Horário de Funcionamento</label>
-            <input defaultValue="06:00 — 22:00" className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all" />
+            <label className="text-sm text-muted-foreground">Fuso horário</label>
+            <select value={timezone} onChange={e => setTimezone(e.target.value)}
+              className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all">
+              <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+              <option value="America/Manaus">Manaus (AMT)</option>
+              <option value="America/Fortaleza">Fortaleza (BRT)</option>
+              <option value="America/Cuiaba">Cuiabá (AMT)</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Cor do tema</label>
+            <div className="flex items-center gap-3">
+              <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)} className="w-10 h-10 rounded-lg border-0 cursor-pointer" />
+              <input value={accentColor} onChange={e => setAccentColor(e.target.value)}
+                className="flex-1 h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Slug</label>
+            <input value={gym?.slug ?? ""} disabled
+              className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-muted-foreground cursor-not-allowed" />
           </div>
         </div>
-        <Button size="sm">Salvar</Button>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
         <h3 className="text-base font-semibold text-foreground">Regras de Acesso</h3>
         <div className="space-y-3">
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-sm text-foreground">Bloquear catraca para inadimplentes</span>
-            <div className="w-10 h-6 bg-primary rounded-full relative">
-              <div className="w-4 h-4 bg-primary-foreground rounded-full absolute right-1 top-1" />
-            </div>
-          </label>
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-sm text-foreground">Restringir acesso fora do horário</span>
-            <div className="w-10 h-6 bg-primary rounded-full relative">
-              <div className="w-4 h-4 bg-primary-foreground rounded-full absolute right-1 top-1" />
-            </div>
-          </label>
+          {[
+            { key: "block_defaulters", label: "Bloquear catraca para inadimplentes" },
+            { key: "restrict_hours", label: "Restringir acesso fora do horário" },
+            { key: "require_checkin", label: "Exigir check-in no app" },
+          ].map(({ key, label }) => (
+            <label key={key} className="flex items-center justify-between cursor-pointer" onClick={() => toggleSetting(key)}>
+              <span className="text-sm text-foreground">{label}</span>
+              <div className={`w-10 h-6 rounded-full relative transition-colors ${settings[key] ? "bg-primary" : "bg-muted"}`}>
+                <div className={`w-4 h-4 bg-primary-foreground rounded-full absolute top-1 transition-all ${settings[key] ? "right-1" : "left-1"}`} />
+              </div>
+            </label>
+          ))}
         </div>
       </div>
     </div>
