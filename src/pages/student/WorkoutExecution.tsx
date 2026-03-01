@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp, Flame } from "lucide-react";
+import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp, Flame, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyAssignedWorkouts, useWorkoutDays, useMyWorkoutSessions } from "@/hooks/use-supabase-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -50,7 +50,29 @@ export default function WorkoutExecution() {
   const [elapsed, setElapsed] = useState(0);
   const [finished, setFinished] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  // Track weight per exercise per set: { [exerciseIndex]: { [setNumber]: weight } }
+  const [weightLog, setWeightLog] = useState<Record<number, Record<number, string>>>({});
+  const [currentWeight, setCurrentWeight] = useState("");
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  // When exercise or set changes, load the saved weight
+  useEffect(() => {
+    const saved = weightLog[currentIndex]?.[currentSet] ?? "";
+    setCurrentWeight(saved);
+  }, [currentIndex, currentSet]);
+
+  const handleWeightChange = useCallback((value: string) => {
+    // Allow only numbers and decimal point, max 6 chars
+    const sanitized = value.replace(/[^0-9.]/g, "").slice(0, 6);
+    setCurrentWeight(sanitized);
+    setWeightLog(prev => ({
+      ...prev,
+      [currentIndex]: {
+        ...(prev[currentIndex] ?? {}),
+        [currentSet]: sanitized,
+      },
+    }));
+  }, [currentIndex, currentSet]);
 
   const exercise = exercises[currentIndex];
   const progress = exercises.length > 0 ? ((currentIndex) / exercises.length) * 100 : 0;
@@ -72,7 +94,7 @@ export default function WorkoutExecution() {
       // 2. Save workout_logs for each exercise with estimated calories & duration
       if (session && exercises.length > 0) {
         const avgDurationPerExercise = Math.max(30, Math.round(elapsed / exercises.length));
-        const logs = exercises.map((ex) => {
+        const logs = exercises.map((ex, exIdx) => {
           const durationSecs = avgDurationPerExercise;
           // Estimate calories: at least 3 kcal per set performed, or ~8 kcal/min
           const repsNum = parseInt(String(ex.reps)) || 12;
@@ -88,6 +110,7 @@ export default function WorkoutExecution() {
               Array.from({ length: ex.sets }, (_, i) => ({
                 set: i + 1,
                 reps: ex.reps,
+                weight_kg: parseFloat(weightLog[exIdx]?.[i + 1] || "0") || null,
                 completed: true,
               }))
             ),
@@ -349,6 +372,22 @@ export default function WorkoutExecution() {
               <div>
                 <p className="text-2xl font-bold text-primary">{currentSet}/{exercise.sets}</p>
                 <p className="text-xs text-muted-foreground">Série</p>
+              </div>
+            </div>
+
+            {/* Weight input */}
+            <div className="flex items-center justify-center gap-3 pt-1">
+              <div className="flex items-center gap-2 bg-secondary/60 border border-border rounded-xl px-4 py-2.5">
+                <Weight className="w-4 h-4 text-primary shrink-0" />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={currentWeight}
+                  onChange={(e) => handleWeightChange(e.target.value)}
+                  className="w-16 bg-transparent text-center text-lg font-bold text-foreground outline-none placeholder:text-muted-foreground/40"
+                />
+                <span className="text-xs text-muted-foreground font-medium">kg</span>
               </div>
             </div>
 
