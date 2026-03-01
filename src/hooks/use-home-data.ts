@@ -169,7 +169,7 @@ export function useBodyFocusExercises() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercises")
-        .select("id, name, muscle_group, category, media_url, equipment")
+        .select("id, name, muscle_group, category, media_url, equipment, instructions")
         .eq("gym_id", profile!.gym_id!)
         .limit(30);
       if (error) throw error;
