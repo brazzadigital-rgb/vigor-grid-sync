@@ -1,12 +1,19 @@
-import { Shield, CheckCircle2, XCircle, Activity, Loader2 } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useGymAccessLogs, useGymDevices } from "@/hooks/use-supabase-data";
+import { useSimulateAccess } from "@/hooks/use-henry-integration";
 
 export default function AdminAccessControl() {
   const [tokenTest, setTokenTest] = useState("");
   const { data: accessLogs, isLoading } = useGymAccessLogs();
   const { data: devices } = useGymDevices();
+  const simulateAccess = useSimulateAccess();
+
+  const handleSimulate = () => {
+    if (!tokenTest.trim()) return;
+    simulateAccess.mutate({ credential_token: tokenTest.trim() });
+  };
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -41,16 +48,41 @@ export default function AdminAccessControl() {
       {/* Simulator */}
       <div className="rounded-2xl border border-primary/20 bg-card p-5 space-y-3">
         <h3 className="text-base font-semibold text-foreground">🧪 Modo Simulador</h3>
-        <p className="text-xs text-muted-foreground">Teste a validação sem catraca física</p>
+        <p className="text-xs text-muted-foreground">Teste a validação sem catraca física. Use o token_hash de uma credencial.</p>
         <div className="flex gap-2">
           <input
             value={tokenTest}
             onChange={(e) => setTokenTest(e.target.value)}
-            placeholder="Token ou ID do aluno"
+            placeholder="Token hash da credencial"
             className="flex-1 h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-all"
           />
-          <Button size="sm">Simular</Button>
+          <Button size="sm" onClick={handleSimulate} disabled={simulateAccess.isPending}>
+            {simulateAccess.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Simular"}
+          </Button>
         </div>
+
+        {simulateAccess.data && (
+          <div className={`flex items-center gap-2 rounded-xl p-3 ${
+            simulateAccess.data.decision === "allow"
+              ? "bg-success/10 border border-success/20"
+              : "bg-destructive/10 border border-destructive/20"
+          }`}>
+            {simulateAccess.data.decision === "allow" ? (
+              <CheckCircle2 className="w-5 h-5 text-success" />
+            ) : (
+              <XCircle className="w-5 h-5 text-destructive" />
+            )}
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {simulateAccess.data.decision === "allow" ? "Acesso Permitido" : "Acesso Negado"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {simulateAccess.data.member_name && `Aluno: ${simulateAccess.data.member_name} · `}
+                Motivo: {simulateAccess.data.reason}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Access Logs */}
