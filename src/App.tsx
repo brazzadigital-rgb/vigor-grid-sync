@@ -22,6 +22,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPrograms from "./pages/admin/AdminPrograms";
+import AdminProgramDetail from "./pages/admin/AdminProgramDetail";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminAccessControl from "./pages/admin/AdminAccessControl";
@@ -60,6 +61,7 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="programs" element={<AdminPrograms />} />
+              <Route path="programs/:id" element={<AdminProgramDetail />} />
               <Route path="plans" element={<AdminPlans />} />
               <Route path="payments" element={<AdminPayments />} />
               <Route path="access" element={<AdminAccessControl />} />
