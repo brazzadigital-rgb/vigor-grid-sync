@@ -20,6 +20,8 @@ import StudentProgress from "./pages/student/StudentProgress";
 import StudentPayments from "./pages/student/StudentPayments";
 import StudentCredential from "./pages/student/StudentCredential";
 import StudentSettings from "./pages/student/StudentSettings";
+import StudentGoals from "./pages/student/StudentGoals";
+import StudentBadges from "./pages/student/StudentBadges";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -59,6 +61,9 @@ const App = () => (
             <Route path="/app/profile/payments" element={<ProtectedRoute><StudentLayout><StudentPayments /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/credential" element={<ProtectedRoute><StudentLayout><StudentCredential /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/settings" element={<ProtectedRoute><StudentLayout><StudentSettings /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/profile/badges" element={<ProtectedRoute><StudentLayout><StudentBadges /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/goals" element={<ProtectedRoute><StudentLayout><StudentGoals /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/goals/new" element={<ProtectedRoute><StudentLayout><StudentGoals /></StudentLayout></ProtectedRoute>} />
 
             {/* Admin ERP — protected + staff */}
             <Route path="/admin" element={<ProtectedRoute requireStaff><AdminLayout /></ProtectedRoute>}>

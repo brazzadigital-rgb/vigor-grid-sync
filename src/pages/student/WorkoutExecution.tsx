@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyAssignedWorkouts, useWorkoutDays } from "@/hooks/use-supabase-data";
 import { useMutation } from "@tanstack/react-query";
@@ -125,26 +125,63 @@ export default function WorkoutExecution() {
     );
   }
 
+  const estimatedCalories = Math.round(elapsed * 0.12 * exercises.length * 0.4);
+  const performanceScore = Math.min(100, Math.round((exercises.length / Math.max(1, exercises.length)) * 80 + Math.min(20, elapsed / 60)));
+
   if (finished) {
     return (
       <div className="px-5 pt-14 pb-6 max-w-lg mx-auto flex flex-col items-center justify-center min-h-[80vh] space-y-6 text-center">
-        <div className="w-20 h-20 rounded-full bg-success/15 border border-success/30 flex items-center justify-center glow-purple">
-          <Check className="w-10 h-10 text-success" />
+        {/* Completion Animation */}
+        <div className="relative">
+          <div className="w-24 h-24 rounded-full bg-success/15 border-2 border-success/40 flex items-center justify-center glow-purple animate-bounce">
+            <Check className="w-12 h-12 text-success" />
+          </div>
+          <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-warning/20 border border-warning/30 flex items-center justify-center animate-pulse">
+            <span className="text-lg">🔥</span>
+          </div>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Treino Concluído! 🎉</h1>
-        <div className="grid grid-cols-2 gap-4 w-full">
-          <div className="rounded-2xl border border-border bg-card p-4 text-center">
+
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-foreground">Treino Concluído! 🎉</h1>
+          <p className="text-sm text-muted-foreground">Parabéns, você arrasou!</p>
+        </div>
+
+        {/* Performance Score */}
+        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 w-full glow-purple">
+          <p className="text-xs text-primary font-medium uppercase tracking-wider mb-2">Performance</p>
+          <p className="text-5xl font-bold text-gradient-purple">{performanceScore}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {performanceScore >= 90 ? "Excelente! 🏆" : performanceScore >= 70 ? "Muito bom! 💪" : "Continue assim! 🎯"}
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-3 w-full">
+          <div className="rounded-2xl border border-border bg-card p-4 text-center space-y-1">
+            <Timer className="w-5 h-5 mx-auto text-info" />
             <p className="text-lg font-bold text-foreground">{formatTime(elapsed)}</p>
-            <p className="text-xs text-muted-foreground">Duração</p>
+            <p className="text-[10px] text-muted-foreground">Duração</p>
           </div>
-          <div className="rounded-2xl border border-border bg-card p-4 text-center">
+          <div className="rounded-2xl border border-border bg-card p-4 text-center space-y-1">
+            <Flame className="w-5 h-5 mx-auto text-warning" />
+            <p className="text-lg font-bold text-foreground">{estimatedCalories}</p>
+            <p className="text-[10px] text-muted-foreground">Calorias</p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-4 text-center space-y-1">
+            <Check className="w-5 h-5 mx-auto text-success" />
             <p className="text-lg font-bold text-foreground">{exercises.length}</p>
-            <p className="text-xs text-muted-foreground">Exercícios</p>
+            <p className="text-[10px] text-muted-foreground">Exercícios</p>
           </div>
         </div>
-        <Button variant="glow" size="lg" className="w-full" onClick={() => navigate("/app/workouts")}>
-          Voltar aos Treinos
-        </Button>
+
+        <div className="w-full space-y-3 pt-2">
+          <Button variant="glow" size="lg" className="w-full" onClick={() => navigate("/app")}>
+            Voltar ao Início
+          </Button>
+          <Button variant="outline" size="lg" className="w-full" onClick={() => navigate("/app/workouts")}>
+            Ver Treinos
+          </Button>
+        </div>
       </div>
     );
   }

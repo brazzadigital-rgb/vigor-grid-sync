@@ -1,14 +1,21 @@
-import { User, CreditCard, QrCode, Settings, LogOut, ChevronRight, TrendingUp } from "lucide-react";
+import { 
+  User, Bell, Crown, MessageCircle, Ruler, Target, Plus, Trophy, Settings, LogOut, ChevronRight, Edit
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyMembership, useMyWorkoutStats, useMyCredential } from "@/hooks/use-supabase-data";
 
 const menuItems = [
-  { icon: TrendingUp, label: "Progresso", description: "Gráficos e evolução", to: "/app/profile/progress" },
-  { icon: CreditCard, label: "Pagamentos", description: "Histórico e plano", to: "/app/profile/payments" },
-  { icon: QrCode, label: "Credencial", description: "QR Code de acesso", to: "/app/profile/credential" },
-  { icon: Settings, label: "Configurações", description: "Editar perfil", to: "/app/profile/settings" },
+  { icon: Edit, label: "Editar Perfil", description: "Foto, nome e dados", to: "/app/profile/settings" },
+  { icon: Bell, label: "Notificações", description: "Alertas e lembretes", to: "/app/profile/notifications" },
+  { icon: Crown, label: "Go Premium", description: "Upgrade seu plano", to: "/app/profile/premium", accent: true },
+  { icon: MessageCircle, label: "Fale com seu PT", description: "Mensagem ao coach", to: "/app/profile/chat" },
+  { icon: Ruler, label: "Minhas Medidas", description: "Peso, BF e medidas", to: "/app/profile/progress" },
+  { icon: Target, label: "Meus Objetivos", description: "Acompanhe suas metas", to: "/app/goals" },
+  { icon: Plus, label: "Adicionar Meta", description: "Criar novo objetivo", to: "/app/goals/new" },
+  { icon: Trophy, label: "Minhas Conquistas", description: "Badges e troféus", to: "/app/profile/badges" },
+  { icon: Settings, label: "Configurações", description: "Preferências do app", to: "/app/profile/settings" },
 ];
 
 export default function StudentProfile() {
@@ -16,7 +23,6 @@ export default function StudentProfile() {
   const { profile, signOut, isStaff } = useAuth();
   const { data: membership } = useMyMembership();
   const { data: stats } = useMyWorkoutStats();
-  const { data: credential } = useMyCredential();
 
   const initials = profile?.name
     ?.split(" ")
@@ -35,9 +41,11 @@ export default function StudentProfile() {
       {/* Avatar & Info */}
       <div className="flex items-center gap-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center text-xl font-bold text-primary">
-          {initials}
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="w-full h-full rounded-2xl object-cover" />
+          ) : initials}
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-foreground">{profile?.name ?? "Aluno"}</h1>
           <p className="text-sm text-muted-foreground">{profile?.email}</p>
           <div className="flex gap-2 mt-1">
@@ -53,19 +61,6 @@ export default function StudentProfile() {
             </span>
           </div>
         </div>
-      </div>
-
-      {/* QR Code Card */}
-      <div
-        className="rounded-2xl border border-primary/20 bg-card p-6 text-center space-y-3 glow-purple cursor-pointer hover:border-primary/40 transition-all"
-        onClick={() => navigate("/app/profile/credential")}
-      >
-        <QrCode className="w-20 h-20 mx-auto text-primary" />
-        <p className="text-sm font-medium text-foreground">Credencial de Acesso</p>
-        <p className="text-xs text-muted-foreground">Apresente na catraca para entrar</p>
-        <p className="text-xs font-mono text-primary/60">
-          {credential ? `FP-${credential.id.slice(0, 8).toUpperCase()}` : "Sem credencial"}
-        </p>
       </div>
 
       {/* Stats */}
@@ -90,13 +85,19 @@ export default function StudentProfile() {
           <div
             key={item.label}
             onClick={() => navigate(item.to)}
-            className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 transition-all"
+            className={`flex items-center gap-4 rounded-2xl border p-4 cursor-pointer transition-all ${
+              (item as any).accent 
+                ? "border-primary/30 bg-primary/5 hover:border-primary/50 glow-purple" 
+                : "border-border bg-card hover:border-primary/30"
+            }`}
           >
-            <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-              <item.icon className="w-5 h-5 text-primary" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              (item as any).accent ? "bg-primary/20" : "bg-secondary"
+            }`}>
+              <item.icon className={`w-5 h-5 ${(item as any).accent ? "text-primary" : "text-primary"}`} />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">{item.label}</p>
+              <p className={`text-sm font-medium ${(item as any).accent ? "text-primary" : "text-foreground"}`}>{item.label}</p>
               <p className="text-xs text-muted-foreground">{item.description}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
