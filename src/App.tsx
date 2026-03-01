@@ -21,6 +21,7 @@ import RoutinePage from "./pages/app/RoutinePage";
 import RoutineExecutionPage from "./pages/app/RoutineExecutionPage";
 import GoalsPage from "./pages/app/GoalsPage";
 import NewGoalPage from "./pages/app/NewGoalPage";
+import EditGoalPage from "./pages/app/EditGoalPage";
 import AICoachPage from "./pages/app/AICoachPage";
 import AIChatPage from "./pages/app/AIChatPage";
 import AICoachDashboardPage from "./pages/app/AICoachDashboardPage";
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="premium" element={<PremiumPage />} />
               <Route path="goals/new" element={<NewGoalPage />} />
+              <Route path="goals/:id/edit" element={<EditGoalPage />} />
               <Route path="ai-coach/dashboard" element={<AICoachDashboardPage />} />
               <Route path="ai-coach/feedback" element={<AIFeedbackPage />} />
               <Route path="profile/settings/password" element={<ChangePasswordPage />} />
