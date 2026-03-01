@@ -134,9 +134,6 @@ export default memo(function HomeDashboard() {
         </span>
       </motion.div>
 
-      {/* Performance Dashboard */}
-      <PerformanceDashboard />
-
       {/* Today's Workout */}
       {isLoading ? (
         <div className="rounded-2xl border border-border bg-card p-10 flex items-center justify-center">
@@ -192,6 +189,9 @@ export default memo(function HomeDashboard() {
           <p className="text-xs text-muted-foreground/60">Seu coach vai montar seu treino em breve</p>
         </motion.div>
       )}
+
+      {/* Performance Dashboard */}
+      <PerformanceDashboard />
 
       {/* Promotion Slider */}
       <PromotionSlider />
