@@ -35,12 +35,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (rolesRes.data) setRoles(rolesRes.data.map((r: any) => r.role as AppRole));
   }, []);
 
+  const syncOnboardingFromLocalStorage = useCallback(async (userId: string) => {
+    const saved = localStorage.getItem("onboarding_progress");
+    const done = localStorage.getItem("onboarding_steps_done");
+    if (!done || done !== "true") return;
+
+    let answers: Record<string, any> = {};
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.answers) answers = parsed.answers;
+      } catch {}
+    }
+
+    // Also try to get answers even if onboarding_progress was already cleared
+    if (Object.keys(answers).length === 0) {
+      // Already cleared, nothing to sync
+      localStorage.removeItem("onboarding_steps_done");
+      return;
+    }
+
+    const payload = {
+      user_id: userId,
+      gender: answers.gender || null,
+      age: answers.age || null,
+      height: answers.height || null,
+      weight: answers.weight || null,
+      activity_level: answers.activity_level || null,
+      fitness_goal: answers.fitness_goal || null,
+      experience_level: answers.experience_level || null,
+      equipment: answers.equipment || [],
+      workout_duration: answers.workout_duration || null,
+      workout_location: answers.workout_location || null,
+      preferred_time: answers.preferred_time || null,
+      injuries: answers.injuries || [],
+      reminders: answers.reminders || null,
+      completed: true,
+    };
+
+    const { error } = await supabase.from("onboarding_data").upsert(payload, { onConflict: "user_id" });
+    if (!error) {
+      localStorage.removeItem("onboarding_progress");
+      localStorage.removeItem("onboarding_steps_done");
+      console.log("Onboarding data synced to Supabase");
+    }
+  }, []);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfileAndRoles(session.user.id).finally(() => setLoading(false));
+        syncOnboardingFromLocalStorage(session.user.id);
       } else {
         setProfile(null);
         setRoles([]);
