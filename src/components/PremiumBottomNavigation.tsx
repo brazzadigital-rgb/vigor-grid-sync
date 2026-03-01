@@ -155,14 +155,12 @@ function CenterFab({ active }: { active: boolean }) {
 
 /* ─── Sliding Active Pill ─── */
 function ActivePill({ activeIndex }: { activeIndex: number }) {
-  // Skip rendering for center button (index 2)
   if (activeIndex === 2 || activeIndex < 0) return null;
 
-  // Calculate x position: items are evenly spaced in ~320px container
-  // 5 items, each ~64px, pill sits under non-center items
-  const positions = [32, 96, 0, 224, 288]; // approximate centers
-  const x = positions[activeIndex];
-  if (!x) return null;
+  // 5 items with justify-around: centers at 10%, 30%, 50%, 70%, 90%
+  const percentages = [10, 30, 0, 70, 90];
+  const pct = percentages[activeIndex];
+  if (!pct) return null;
 
   return (
     <motion.div
@@ -170,9 +168,10 @@ function ActivePill({ activeIndex }: { activeIndex: number }) {
       style={{
         background: "linear-gradient(90deg, hsl(258 82% 60%), hsl(280 80% 55%))",
         boxShadow: "0 0 12px hsl(258 82% 60% / 0.6)",
-        left: 0,
+        left: `${pct}%`,
+        transform: "translateX(-50%)",
       }}
-      animate={{ x: x - 16 }}
+      animate={{ left: `${pct}%` }}
       transition={{ ...spring, stiffness: 350 }}
     />
   );
