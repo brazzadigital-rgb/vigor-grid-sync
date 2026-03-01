@@ -33,7 +33,7 @@ export default function OnboardingPage() {
   const handleNext = () => {
     if (isLast) {
       localStorage.setItem("onboarding_done", "true");
-      navigate("/onboarding");
+      navigate("/login");
     } else {
       setCurrentSlide((prev) => prev + 1);
     }
@@ -41,7 +41,7 @@ export default function OnboardingPage() {
 
   const handleSkip = () => {
     localStorage.setItem("onboarding_done", "true");
-    navigate("/onboarding");
+    navigate("/login");
   };
 
   const slide = slides[currentSlide];

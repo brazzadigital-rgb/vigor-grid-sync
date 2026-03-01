@@ -483,69 +483,6 @@ export type Database = {
           },
         ]
       }
-      onboarding_data: {
-        Row: {
-          activity_level: string | null
-          age: number | null
-          completed: boolean
-          created_at: string
-          equipment: string[] | null
-          experience_level: string | null
-          fitness_goal: string | null
-          gender: string | null
-          height: number | null
-          id: string
-          injuries: string[] | null
-          preferred_time: string | null
-          reminders: string | null
-          updated_at: string
-          user_id: string
-          weight: number | null
-          workout_duration: string | null
-          workout_location: string | null
-        }
-        Insert: {
-          activity_level?: string | null
-          age?: number | null
-          completed?: boolean
-          created_at?: string
-          equipment?: string[] | null
-          experience_level?: string | null
-          fitness_goal?: string | null
-          gender?: string | null
-          height?: number | null
-          id?: string
-          injuries?: string[] | null
-          preferred_time?: string | null
-          reminders?: string | null
-          updated_at?: string
-          user_id: string
-          weight?: number | null
-          workout_duration?: string | null
-          workout_location?: string | null
-        }
-        Update: {
-          activity_level?: string | null
-          age?: number | null
-          completed?: boolean
-          created_at?: string
-          equipment?: string[] | null
-          experience_level?: string | null
-          fitness_goal?: string | null
-          gender?: string | null
-          height?: number | null
-          id?: string
-          injuries?: string[] | null
-          preferred_time?: string | null
-          reminders?: string | null
-          updated_at?: string
-          user_id?: string
-          weight?: number | null
-          workout_duration?: string | null
-          workout_location?: string | null
-        }
-        Relationships: []
-      }
       payments: {
         Row: {
           amount_cents: number
@@ -806,48 +743,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      user_goals: {
-        Row: {
-          created_at: string
-          current_value: number | null
-          deadline: string | null
-          id: string
-          name: string
-          status: string
-          target_value: number | null
-          type: string
-          unit: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          current_value?: number | null
-          deadline?: string | null
-          id?: string
-          name: string
-          status?: string
-          target_value?: number | null
-          type: string
-          unit?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          current_value?: number | null
-          deadline?: string | null
-          id?: string
-          name?: string
-          status?: string
-          target_value?: number | null
-          type?: string
-          unit?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       user_roles: {
         Row: {

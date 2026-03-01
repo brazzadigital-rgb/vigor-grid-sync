@@ -18,7 +18,7 @@ export default function ProtectedRoute({ children, requireStaff }: Props) {
     );
   }
 
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session) return <Navigate to="/" replace />;
   if (requireStaff && !isStaff) return <Navigate to="/app" replace />;
 
   return <>{children}</>;
