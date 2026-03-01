@@ -128,3 +128,33 @@ export function useAdminOrders() {
     },
   });
 }
+
+export function useAdminOrderById(id: string | undefined) {
+  return useQuery({
+    queryKey: ["admin-store-order", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("store_orders")
+        .select("*, profiles(name, email, phone), store_order_items(*)")
+        .eq("id", id!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useUpdateOrderStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from("store_orders").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-store-orders"] });
+      qc.invalidateQueries({ queryKey: ["admin-store-order"] });
+    },
+  });
+}

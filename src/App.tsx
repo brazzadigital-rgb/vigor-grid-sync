@@ -46,6 +46,7 @@ import AdminStoreCategories from "./pages/admin/AdminStoreCategories";
 import AdminStoreProducts from "./pages/admin/AdminStoreProducts";
 import AdminStoreProductForm from "./pages/admin/AdminStoreProductForm";
 import AdminStoreOrders from "./pages/admin/AdminStoreOrders";
+import AdminStoreOrderDetail from "./pages/admin/AdminStoreOrderDetail";
 import ProgressTodayPage from "./pages/student/ProgressTodayPage";
 import NotFound from "./pages/NotFound";
 
@@ -108,6 +109,7 @@ const App = () => (
                 <Route path="products/new" element={<AdminStoreProductForm />} />
                 <Route path="products/:id/edit" element={<AdminStoreProductForm />} />
                 <Route path="orders" element={<AdminStoreOrders />} />
+                <Route path="orders/:id" element={<AdminStoreOrderDetail />} />
               </Route>
             </Route>
 
