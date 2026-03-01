@@ -113,16 +113,53 @@ export default function AdminLayout() {
           collapsed ? "w-16" : "w-64"
         )}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          {!collapsed && <span className="text-lg font-bold text-gradient-purple">FitAdmin</span>}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          >
-            {collapsed ? <Menu className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-        </div>
-        <SidebarNav />
+        {collapsed ? (
+          <>
+            <div className="flex items-center justify-center h-16 border-b border-border">
+              <button
+                onClick={() => setCollapsed(false)}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                <Menu className="w-4 h-4" />
+              </button>
+            </div>
+            <nav className="flex-1 py-4 px-1.5 space-y-1 overflow-y-auto">
+              {sidebarItems.map((item) => {
+                const isActive = item.end
+                  ? location.pathname === item.to
+                  : location.pathname.startsWith(item.to);
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={cn(
+                      "flex items-center justify-center p-2.5 rounded-xl transition-all duration-200",
+                      isActive
+                        ? "bg-primary/15 text-primary border border-primary/20"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    )}
+                    title={item.label}
+                  >
+                    <item.icon className="w-5 h-5 shrink-0" />
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-between h-16 px-4 border-b border-border">
+              <span className="text-lg font-bold text-gradient-purple">FitAdmin</span>
+              <button
+                onClick={() => setCollapsed(true)}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
+            <SidebarNav />
+          </>
+        )}
       </aside>
 
       <div className={cn("flex-1 transition-all duration-300", collapsed ? "ml-16" : "ml-64")}>
