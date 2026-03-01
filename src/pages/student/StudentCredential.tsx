@@ -2,6 +2,7 @@ import { ArrowLeft, QrCode, Shield, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMyCredential, useMyMembership } from "@/hooks/use-supabase-data";
 import { useAuth } from "@/contexts/AuthContext";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function StudentCredential() {
   const navigate = useNavigate();
@@ -26,7 +27,19 @@ export default function StudentCredential() {
         <>
           {/* QR Code */}
           <div className="rounded-2xl border border-primary/20 bg-card p-8 text-center space-y-4 glow-purple">
-            <QrCode className="w-32 h-32 mx-auto text-primary" />
+            {credential?.token_hash ? (
+              <div className="inline-block p-4 bg-white rounded-2xl">
+                <QRCodeSVG
+                  value={credential.token_hash}
+                  size={180}
+                  level="H"
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                />
+              </div>
+            ) : (
+              <QrCode className="w-32 h-32 mx-auto text-primary" />
+            )}
             <div className="space-y-1">
               <p className="text-lg font-bold text-foreground">{profile?.name}</p>
               <p className="text-sm text-muted-foreground">{profile?.email}</p>
