@@ -274,6 +274,66 @@ export type Database = {
           },
         ]
       }
+      coach_profiles: {
+        Row: {
+          available_for_chat: boolean | null
+          bio: string | null
+          certifications: string[] | null
+          created_at: string
+          experience_years: number | null
+          gym_id: string
+          id: string
+          instagram: string | null
+          specialties: string[] | null
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          available_for_chat?: boolean | null
+          bio?: string | null
+          certifications?: string[] | null
+          created_at?: string
+          experience_years?: number | null
+          gym_id: string
+          id?: string
+          instagram?: string | null
+          specialties?: string[] | null
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          available_for_chat?: boolean | null
+          bio?: string | null
+          certifications?: string[] | null
+          created_at?: string
+          experience_years?: number | null
+          gym_id?: string
+          id?: string
+          instagram?: string | null
+          specialties?: string[] | null
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_profiles_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           config: Json | null
