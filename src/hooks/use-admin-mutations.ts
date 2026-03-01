@@ -198,6 +198,43 @@ export function useUpdateGym() {
 }
 
 // ==========================================
+// ASSIGNED WORKOUTS
+// ==========================================
+
+export function useAssignWorkout() {
+  const qc = useQueryClient();
+  const gymId = useGymId();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (data: { member_id: string; template_id: string; start_date?: string }) => {
+      const { error } = await supabase.from("assigned_workouts").insert({
+        member_id: data.member_id,
+        template_id: data.template_id,
+        gym_id: gymId!,
+        status: "active",
+        start_date: data.start_date ?? new Date().toISOString().split("T")[0],
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gym-assigned-workouts"] }); toast({ title: "Treino atribuído!" }); },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+}
+
+export function useRemoveAssignedWorkout() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("assigned_workouts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gym-assigned-workouts"] }); toast({ title: "Treino removido!" }); },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+}
+
+// ==========================================
 // EXERCISES
 // ==========================================
 

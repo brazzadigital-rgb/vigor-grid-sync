@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Search, Plus, MoreHorizontal, Download, Loader2, Trash2, Edit, UserPlus } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Download, Loader2, Trash2, Edit, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useGymMemberships, useGymPlans, useGymProfiles } from "@/hooks/use-supabase-data";
-import { useCreateMembership, useUpdateMembership, useDeleteMembership, useUpdateProfile } from "@/hooks/use-admin-mutations";
+import { useGymMemberships, useGymPlans, useGymWorkoutTemplates, useGymAssignedWorkouts } from "@/hooks/use-supabase-data";
+import { useCreateMembership, useUpdateMembership, useDeleteMembership, useAssignWorkout, useRemoveAssignedWorkout } from "@/hooks/use-admin-mutations";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,17 +22,24 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
+  const [assignMember, setAssignMember] = useState<any>(null);
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
   const [newPlanId, setNewPlanId] = useState("");
   const [newStatus, setNewStatus] = useState("active");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const { data: memberships, isLoading } = useGymMemberships();
   const { data: plans } = useGymPlans();
+  const { data: templates } = useGymWorkoutTemplates();
+  const { data: assignedWorkouts } = useGymAssignedWorkouts();
   const { profile } = useAuth();
   const createMembership = useCreateMembership();
   const updateMembership = useUpdateMembership();
   const deleteMembership = useDeleteMembership();
+  const assignWorkout = useAssignWorkout();
+  const removeAssigned = useRemoveAssignedWorkout();
   const { toast } = useToast();
 
   const filtered = (memberships ?? []).filter((m: any) => {
@@ -61,14 +68,22 @@ export default function AdminUsers() {
     setDialogOpen(true);
   };
 
+  const openAssign = (member: any) => {
+    setAssignMember(member);
+    setSelectedTemplateId(templates?.[0]?.id ?? "");
+    setAssignDialogOpen(true);
+  };
+
+  const getMemberAssignedWorkouts = (memberId: string) => {
+    return (assignedWorkouts ?? []).filter((aw: any) => aw.member_id === memberId && aw.status === "active");
+  };
+
   const handleSave = async () => {
     if (editingMember) {
       await updateMembership.mutateAsync({ id: editingMember.id, plan_id: newPlanId || null, status: newStatus });
     } else {
-      // Search for user by email, create profile + membership
       if (!newEmail.trim()) { toast({ title: "Informe o email", variant: "destructive" }); return; }
       
-      // Check if profile exists with this email
       const { data: existingProfile } = await supabase
         .from("profiles")
         .select("id, gym_id")
@@ -80,25 +95,37 @@ export default function AdminUsers() {
         return;
       }
 
-      // Link profile to gym if not already
       if (!existingProfile.gym_id) {
         await supabase.from("profiles").update({ gym_id: profile!.gym_id }).eq("id", existingProfile.id);
       }
 
-      // Create membership
       await createMembership.mutateAsync({
         member_id: existingProfile.id,
         plan_id: newPlanId || undefined,
         status: newStatus,
       });
 
-      // Add member role
       await supabase.from("user_roles").upsert(
         { user_id: existingProfile.id, gym_id: profile!.gym_id, role: "member" } as any,
         { onConflict: "user_id,role" }
       ).select();
     }
     setDialogOpen(false);
+  };
+
+  const handleAssign = async () => {
+    if (!selectedTemplateId || !assignMember) return;
+    await assignWorkout.mutateAsync({
+      member_id: assignMember.member_id,
+      template_id: selectedTemplateId,
+    });
+    setAssignDialogOpen(false);
+  };
+
+  const handleRemoveAssigned = async (id: string) => {
+    if (confirm("Remover este treino atribuído?")) {
+      await removeAssigned.mutateAsync(id);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -144,8 +171,8 @@ export default function AdminUsers() {
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Aluno</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Plano</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Treino</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Telefone</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cadastro</th>
                 <th className="py-3 px-4"></th>
               </tr>
@@ -156,6 +183,7 @@ export default function AdminUsers() {
                 const name = member.profiles?.name ?? "—";
                 const email = member.profiles?.email ?? "";
                 const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2);
+                const memberWorkouts = getMemberAssignedWorkouts(member.member_id);
                 return (
                   <tr key={member.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
                     <td className="py-3 px-4">
@@ -168,8 +196,24 @@ export default function AdminUsers() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-foreground">{member.plans?.name ?? "—"}</td>
+                    <td className="py-3 px-4">
+                      {memberWorkouts.length > 0 ? (
+                        <div className="space-y-1">
+                          {memberWorkouts.map((aw: any) => (
+                            <div key={aw.id} className="flex items-center gap-1.5">
+                              <Dumbbell className="w-3 h-3 text-primary shrink-0" />
+                              <span className="text-xs text-foreground truncate max-w-[120px]">{aw.workout_templates?.name}</span>
+                              <button onClick={() => handleRemoveAssigned(aw.id)} className="text-muted-foreground hover:text-destructive ml-1">
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-1 rounded-full ${config.className}`}>{config.label}</span></td>
-                    <td className="py-3 px-4 text-muted-foreground">{member.profiles?.phone ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{member.created_at ? new Date(member.created_at).toLocaleDateString("pt-BR") : "—"}</td>
                     <td className="py-3 px-4">
                       <DropdownMenu>
@@ -177,6 +221,7 @@ export default function AdminUsers() {
                           <button className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"><MoreHorizontal className="w-4 h-4" /></button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openAssign(member)}><Dumbbell className="w-4 h-4 mr-2" /> Atribuir Treino</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(member)}><Edit className="w-4 h-4 mr-2" /> Editar</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(member.id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Remover</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -193,6 +238,7 @@ export default function AdminUsers() {
         </div>
       </div>
 
+      {/* Create/Edit Member Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -230,6 +276,49 @@ export default function AdminUsers() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={createMembership.isPending || updateMembership.isPending}>
               {(createMembership.isPending || updateMembership.isPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Workout Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atribuir Treino</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Aluno: <span className="font-medium text-foreground">{assignMember?.profiles?.name ?? "—"}</span>
+            </p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Programa de Treino</label>
+              <select value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)}
+                className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all">
+                <option value="">Selecione...</option>
+                {(templates ?? []).map((t: any) => (
+                  <option key={t.id} value={t.id}>{t.name} {t.level ? `(${t.level})` : ""}</option>
+                ))}
+              </select>
+            </div>
+            {assignMember && getMemberAssignedWorkouts(assignMember.member_id).length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Treinos atuais</label>
+                <div className="space-y-1">
+                  {getMemberAssignedWorkouts(assignMember.member_id).map((aw: any) => (
+                    <div key={aw.id} className="flex items-center justify-between rounded-lg bg-secondary p-2">
+                      <span className="text-xs text-foreground">{aw.workout_templates?.name}</span>
+                      <button onClick={() => handleRemoveAssigned(aw.id)} className="text-xs text-destructive hover:underline">Remover</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAssign} disabled={!selectedTemplateId || assignWorkout.isPending}>
+              {assignWorkout.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Atribuir"}
             </Button>
           </DialogFooter>
         </DialogContent>
