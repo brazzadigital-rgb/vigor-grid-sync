@@ -157,7 +157,7 @@ function CenterFab({ active }: { active: boolean }) {
 function ActivePill({ activeIndex }: { activeIndex: number }) {
   if (activeIndex === 2 || activeIndex < 0) return null;
 
-  // 5 items with justify-around: centers at 10%, 30%, 50%, 70%, 90%
+  // 5 items with justify-around: centers at ~10%, 30%, 50%, 70%, 90%
   const percentages = [10, 30, 0, 70, 90];
   const pct = percentages[activeIndex];
   if (!pct) return null;
@@ -168,10 +168,8 @@ function ActivePill({ activeIndex }: { activeIndex: number }) {
       style={{
         background: "linear-gradient(90deg, hsl(258 82% 60%), hsl(280 80% 55%))",
         boxShadow: "0 0 12px hsl(258 82% 60% / 0.6)",
-        left: `${pct}%`,
-        transform: "translateX(-50%)",
       }}
-      animate={{ left: `${pct}%` }}
+      animate={{ left: `calc(${pct}% - 16px)` }}
       transition={{ ...spring, stiffness: 350 }}
     />
   );
