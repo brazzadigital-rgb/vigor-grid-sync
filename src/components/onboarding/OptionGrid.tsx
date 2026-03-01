@@ -33,15 +33,15 @@ export default function OptionGrid({ options, value, onChange, multi = false, co
             key={opt.value}
             onClick={() => toggle(opt.value)}
             className={cn(
-              "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center min-h-[90px]",
+              "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all duration-200 text-center min-h-[90px]",
               isSelected
-                ? "border-primary bg-primary/10 text-foreground glow-purple"
-                : "border-border bg-card text-muted-foreground hover:border-muted-foreground/50"
+                ? "border-primary bg-primary/15 text-foreground shadow-[0_0_20px_hsl(var(--primary)/0.15)]"
+                : "border-border bg-card text-muted-foreground hover:border-muted-foreground/40"
             )}
           >
             {opt.icon && <div className={cn("text-2xl", isSelected ? "text-primary" : "text-muted-foreground")}>{opt.icon}</div>}
             <span className="text-sm font-medium leading-tight">{opt.label}</span>
-            {opt.description && <span className="text-xs text-muted-foreground">{opt.description}</span>}
+            {opt.description && <span className="text-[11px] text-muted-foreground leading-tight">{opt.description}</span>}
           </button>
         );
       })}
