@@ -221,11 +221,11 @@ export default function WorkoutExecution() {
         <div className="rounded-2xl border border-primary/20 bg-card overflow-hidden glow-purple">
           {/* Exercise Image */}
           {exercise.mediaUrl && (
-            <div className="w-full h-48 bg-secondary overflow-hidden">
+            <div className="w-full bg-secondary">
               <img
                 src={exercise.mediaUrl}
                 alt={exercise.name}
-                className="w-full h-full object-cover"
+                className="w-full h-auto object-contain"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             </div>
