@@ -14,6 +14,7 @@ export default function PerformanceHeroRing({ metrics }: Props) {
     ? Math.min((metrics.calories_burned / metrics.calories_goal) * 100, 100)
     : 0;
   const remaining = Math.max(0, metrics.calories_goal - metrics.calories_burned);
+  const hasWorkoutToday = metrics.workouts_completed_today > 0;
 
   // Count-up animation
   const [displayCal, setDisplayCal] = useState(0);
@@ -86,9 +87,13 @@ export default function PerformanceHeroRing({ metrics }: Props) {
               <span className="text-sm text-muted-foreground font-medium">kcal</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {remaining > 0
-                ? `Faltam ${remaining} kcal para bater a meta`
-                : "🔥 Meta atingida! Você é fera!"}
+              {!hasWorkoutToday
+                ? "Você ainda não treinou hoje. Comece um treino para bater sua meta."
+                : metrics.calories_burned <= 0
+                  ? "Treino concluído hoje, mas ainda sem calorias registradas nos logs."
+                  : remaining > 0
+                    ? `Faltam ${remaining} kcal para bater a meta`
+                    : "🔥 Meta atingida! Você é fera!"}
             </p>
           </div>
 
