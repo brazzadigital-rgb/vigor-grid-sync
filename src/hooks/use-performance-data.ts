@@ -35,12 +35,148 @@ const defaultMetrics: DailyMetrics = {
   avg_pace: null,
 };
 
+const getLocalDayIso = (date = new Date()) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+};
+
+const getStartOfWeekIso = (date = new Date()) => {
+  const local = new Date(date);
+  local.setHours(0, 0, 0, 0);
+  const day = local.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  local.setDate(local.getDate() + diffToMonday);
+  return getLocalDayIso(local);
+};
+
+const mapRowToMetrics = (row: any): DailyMetrics => ({
+  id: row.id,
+  calories_burned: row.calories_burned,
+  calories_goal: row.calories_goal,
+  active_minutes: row.active_minutes,
+  workout_time_minutes: row.workout_time_minutes,
+  workouts_completed_today: row.workouts_completed_today,
+  workouts_completed_week: row.workouts_completed_week,
+  streak_days: row.streak_days,
+  intensity_score: row.intensity_score,
+  distance_km: Number(row.distance_km),
+  weekly_workout_goal: row.weekly_workout_goal,
+  steps: row.steps,
+  avg_pace: row.avg_pace,
+});
+
+const estimateLogCalories = (durationSeconds: number, caloriesEstimated: number | null) => {
+  if (caloriesEstimated && caloriesEstimated > 0) return caloriesEstimated;
+  // fallback: 8 kcal/min quando o log não traz calorias
+  return Math.round((durationSeconds / 60) * 8);
+};
+
+async function getDailyMetricsFromLogs(
+  userId: string,
+  day: string,
+  caloriesGoal: number,
+  weeklyWorkoutGoal: number
+): Promise<DailyMetrics> {
+  const weekStart = getStartOfWeekIso(new Date(`${day}T12:00:00`));
+
+  const { data: sessions, error: sessionsError } = await supabase
+    .from("workout_sessions")
+    .select("id, date, status")
+    .eq("member_id", userId)
+    .gte("date", weekStart)
+    .lte("date", day);
+
+  if (sessionsError) throw sessionsError;
+
+  const doneWeek = (sessions ?? []).filter((s) => s.status === "done");
+  const doneToday = doneWeek.filter((s) => s.date === day);
+
+  if (doneToday.length === 0) {
+    return {
+      ...defaultMetrics,
+      calories_goal: caloriesGoal,
+      weekly_workout_goal: weeklyWorkoutGoal,
+      workouts_completed_week: doneWeek.length,
+    };
+  }
+
+  const sessionIds = doneToday.map((s) => s.id);
+  const { data: logs, error: logsError } = await supabase
+    .from("workout_logs")
+    .select("calories_estimated, duration_seconds")
+    .in("session_id", sessionIds);
+
+  if (logsError) throw logsError;
+
+  let totalCalories = 0;
+  let totalDurationSeconds = 0;
+
+  (logs ?? []).forEach((log) => {
+    const durationSeconds = Math.max(0, Number(log.duration_seconds ?? 0));
+    totalDurationSeconds += durationSeconds;
+    totalCalories += estimateLogCalories(durationSeconds, log.calories_estimated ?? null);
+  });
+
+  const workoutMinutes = Math.round(totalDurationSeconds / 60);
+  const intensity =
+    workoutMinutes > 0 ? Math.min(100, Math.round((totalCalories / workoutMinutes) * 10)) : 0;
+
+  return {
+    ...defaultMetrics,
+    calories_goal: caloriesGoal,
+    weekly_workout_goal: weeklyWorkoutGoal,
+    calories_burned: totalCalories,
+    active_minutes: workoutMinutes,
+    workout_time_minutes: workoutMinutes,
+    workouts_completed_today: doneToday.length,
+    workouts_completed_week: doneWeek.length,
+    intensity_score: intensity,
+  };
+}
+
+async function syncMetricsCache(userId: string, day: string, metrics: DailyMetrics, gymId?: string | null) {
+  try {
+    let resolvedGymId = gymId ?? null;
+
+    if (!resolvedGymId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("gym_id")
+        .eq("id", userId)
+        .maybeSingle();
+      resolvedGymId = profile?.gym_id ?? null;
+    }
+
+    if (!resolvedGymId) return;
+
+    await supabase.from("user_daily_metrics").upsert(
+      {
+        gym_id: resolvedGymId,
+        user_id: userId,
+        day,
+        calories_burned: metrics.calories_burned,
+        calories_goal: metrics.calories_goal,
+        active_minutes: metrics.active_minutes,
+        workout_time_minutes: metrics.workout_time_minutes,
+        workouts_completed_today: metrics.workouts_completed_today,
+        workouts_completed_week: metrics.workouts_completed_week,
+        intensity_score: metrics.intensity_score,
+        weekly_workout_goal: metrics.weekly_workout_goal,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,day" }
+    );
+  } catch {
+    // best effort cache sync
+  }
+}
+
 export function useDailyMetrics() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDayIso();
 
-  // Realtime subscription
+  // Realtime subscription na tabela cache
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -63,7 +199,7 @@ export function useDailyMetrics() {
     };
   }, [user?.id, qc]);
 
-  // Also listen to workout_sessions for instant updates
+  // Sessão concluída/atualizada
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -77,13 +213,35 @@ export function useDailyMetrics() {
           filter: `member_id=eq.${user.id}`,
         },
         () => {
-          // Small delay to let the trigger run
           setTimeout(() => {
             qc.invalidateQueries({ queryKey: ["daily-metrics", user.id] });
-          }, 500);
+          }, 300);
         }
       )
       .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, qc]);
+
+  // Logs do treino inseridos/atualizados
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("workout-logs-metrics-rt")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workout_logs",
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["daily-metrics", user.id] });
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -93,53 +251,78 @@ export function useDailyMetrics() {
     queryKey: ["daily-metrics", user?.id, today],
     enabled: !!user,
     queryFn: async (): Promise<DailyMetrics> => {
+      // tenta recalcular no backend (cache oficial)
       try {
-        // Tenta recalcular, mas sem bloquear a UI caso o RPC falhe
         await supabase.rpc("calculate_daily_metrics", {
           _user_id: user!.id,
           _day: today,
         });
       } catch {
-        // ignora falhas de rede momentâneas no RPC
+        // segue com fallback em tempo real
       }
 
+      let cachedRow: any = null;
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("user_daily_metrics")
           .select("*")
           .eq("user_id", user!.id)
           .eq("day", today)
           .maybeSingle();
-
-        if (error) return defaultMetrics;
-        if (!data) return defaultMetrics;
-
-        return {
-          id: data.id,
-          calories_burned: data.calories_burned,
-          calories_goal: data.calories_goal,
-          active_minutes: data.active_minutes,
-          workout_time_minutes: data.workout_time_minutes,
-          workouts_completed_today: data.workouts_completed_today,
-          workouts_completed_week: data.workouts_completed_week,
-          streak_days: data.streak_days,
-          intensity_score: data.intensity_score,
-          distance_km: Number(data.distance_km),
-          weekly_workout_goal: data.weekly_workout_goal,
-          steps: data.steps,
-          avg_pace: data.avg_pace,
-        };
+        cachedRow = data;
       } catch {
-        return defaultMetrics;
+        cachedRow = null;
+      }
+
+      const cached = cachedRow ? mapRowToMetrics(cachedRow) : null;
+      const caloriesGoal = cached?.calories_goal ?? defaultMetrics.calories_goal;
+      const weeklyGoal = cached?.weekly_workout_goal ?? defaultMetrics.weekly_workout_goal;
+
+      try {
+        const live = await getDailyMetricsFromLogs(user!.id, today, caloriesGoal, weeklyGoal);
+
+        const merged: DailyMetrics = {
+          ...defaultMetrics,
+          ...(cached ?? {}),
+          ...live,
+          id: cached?.id ?? live.id,
+          // preserva métricas derivadas calculadas no backend quando já existirem
+          streak_days: cached?.streak_days ?? live.streak_days,
+          distance_km: cached?.distance_km ?? live.distance_km,
+          steps: cached?.steps ?? live.steps,
+          avg_pace: cached?.avg_pace ?? live.avg_pace,
+        };
+
+        const needsSync =
+          !cached ||
+          cached.calories_burned !== merged.calories_burned ||
+          cached.active_minutes !== merged.active_minutes ||
+          cached.workout_time_minutes !== merged.workout_time_minutes ||
+          cached.workouts_completed_today !== merged.workouts_completed_today ||
+          cached.workouts_completed_week !== merged.workouts_completed_week ||
+          cached.intensity_score !== merged.intensity_score;
+
+        if (needsSync) {
+          void syncMetricsCache(user!.id, today, merged, cachedRow?.gym_id);
+        }
+
+        return merged;
+      } catch {
+        if (cached) return cached;
+        return {
+          ...defaultMetrics,
+          calories_goal: caloriesGoal,
+          weekly_workout_goal: weeklyGoal,
+        };
       }
     },
-    refetchInterval: 60000,
+    refetchInterval: 30000,
   });
 }
 
 export function useHourlyActivity() {
   const { user } = useAuth();
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDayIso();
 
   return useQuery({
     queryKey: ["hourly-activity", user?.id, today],
@@ -165,9 +348,10 @@ export function useHourlyActivity() {
 
       (logs ?? []).forEach((log) => {
         const h = new Date(log.created_at).getHours();
-        const cal = log.calories_estimated && log.calories_estimated > 0
-          ? log.calories_estimated
-          : Math.round(((log.duration_seconds ?? 0) / 60) * 8);
+        const cal =
+          log.calories_estimated && log.calories_estimated > 0
+            ? log.calories_estimated
+            : Math.round(((log.duration_seconds ?? 0) / 60) * 8);
         hourly[h].calories += cal;
         hourly[h].intensity = Math.min(100, hourly[h].intensity + Math.round(cal / 5));
       });
@@ -176,3 +360,4 @@ export function useHourlyActivity() {
     },
   });
 }
+

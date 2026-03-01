@@ -43,7 +43,11 @@ export default function HomeDashboard() {
   });
 
   const todayWorkout = assignedWorkouts?.[0];
-  const todayStr = new Date().toISOString().split("T")[0];
+  const getLocalDayIso = (date = new Date()) => {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  };
+  const todayStr = getLocalDayIso();
   const isTodayWorkoutDone = todayWorkout
     ? (sessions ?? []).some(s => s.status === "done" && s.date === todayStr && s.assigned_workout_id === todayWorkout.id)
     : false;
