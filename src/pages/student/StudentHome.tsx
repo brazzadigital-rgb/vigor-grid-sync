@@ -1,4 +1,4 @@
-import { Flame, Calendar, ChevronRight, Dumbbell, TrendingUp, Trophy, Loader2, Sparkles, Target, Clock } from "lucide-react";
+import { Flame, Calendar, ChevronRight, Dumbbell, TrendingUp, Trophy, Loader2, Sparkles, Target, Clock, Check } from "lucide-react";
 import homeHero from "@/assets/home-hero.jpg";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,13 @@ export default function StudentHome() {
   const { data: stats } = useMyWorkoutStats();
 
   const todayWorkout = assignedWorkouts?.[0];
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayDoneSessions = (sessions ?? []).filter(
+    s => s.status === "done" && s.date === todayStr
+  );
+  const isTodayWorkoutDone = todayWorkout
+    ? todayDoneSessions.some(s => s.assigned_workout_id === todayWorkout.id)
+    : false;
   const upcomingSessions = (sessions ?? [])
     .filter(s => s.status === "planned" && new Date(s.date) >= new Date())
     .slice(0, 3);
@@ -87,10 +94,17 @@ export default function StudentHome() {
             <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {todayWorkout.workout_templates?.weeks ?? 4} sem</span>
             <span className="flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> {todayWorkout.workout_templates?.level ?? "Intermediário"}</span>
           </div>
-          <Button variant="glow" size="lg" className="w-full" onClick={(e) => { e.stopPropagation(); navigate(`/app/workouts/${todayWorkout.id}/execute`); }}>
-            <Dumbbell className="w-4 h-4" />
-            Iniciar Treino
-          </Button>
+          {isTodayWorkoutDone ? (
+            <Button variant="outline" size="lg" className="w-full" disabled>
+              <Check className="w-4 h-4" />
+              Treino Concluído Hoje ✓
+            </Button>
+          ) : (
+            <Button variant="glow" size="lg" className="w-full" onClick={(e) => { e.stopPropagation(); navigate(`/app/workouts/${todayWorkout.id}/execute`); }}>
+              <Dumbbell className="w-4 h-4" />
+              Iniciar Treino
+            </Button>
+          )}
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-3">

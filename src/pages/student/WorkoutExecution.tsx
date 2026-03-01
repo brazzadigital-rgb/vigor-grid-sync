@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMyAssignedWorkouts, useWorkoutDays } from "@/hooks/use-supabase-data";
+import { useMyAssignedWorkouts, useWorkoutDays, useMyWorkoutSessions } from "@/hooks/use-supabase-data";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,10 +12,16 @@ export default function WorkoutExecution() {
   const { id } = useParams();
   const { profile } = useAuth();
   const { data: assigned } = useMyAssignedWorkouts();
+  const { data: sessions } = useMyWorkoutSessions();
 
   const workout = assigned?.find(w => w.id === id);
   const templateId = workout?.template_id;
   const { data: days, isLoading } = useWorkoutDays(templateId);
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const alreadyDoneToday = (sessions ?? []).some(
+    s => s.assigned_workout_id === id && s.status === "done" && s.date === todayStr
+  );
 
   const exercises = (days ?? [])
     .sort((a, b) => a.day_index - b.day_index)
@@ -112,6 +118,19 @@ export default function WorkoutExecution() {
     return (
       <div className="px-5 pt-14 pb-6 max-w-lg mx-auto flex items-center justify-center min-h-[80vh]">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (alreadyDoneToday && !finished) {
+    return (
+      <div className="px-5 pt-14 pb-6 max-w-lg mx-auto flex flex-col items-center justify-center min-h-[80vh] space-y-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
+          <Check className="w-8 h-8 text-success" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Treino já concluído hoje</h2>
+        <p className="text-sm text-muted-foreground">Você já completou este treino hoje. Volte amanhã!</p>
+        <Button variant="outline" onClick={() => navigate("/app")}>Voltar ao Início</Button>
       </div>
     );
   }
