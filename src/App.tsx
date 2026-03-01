@@ -14,6 +14,10 @@ import WorkoutExecution from "./pages/student/WorkoutExecution";
 import StudentSchedule from "./pages/student/StudentSchedule";
 import StudentSearch from "./pages/student/StudentSearch";
 import StudentProfile from "./pages/student/StudentProfile";
+import StudentProgress from "./pages/student/StudentProgress";
+import StudentPayments from "./pages/student/StudentPayments";
+import StudentCredential from "./pages/student/StudentCredential";
+import StudentSettings from "./pages/student/StudentSettings";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -46,6 +50,10 @@ const App = () => (
             <Route path="/app/schedule" element={<ProtectedRoute><StudentLayout><StudentSchedule /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/search" element={<ProtectedRoute><StudentLayout><StudentSearch /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile" element={<ProtectedRoute><StudentLayout><StudentProfile /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/profile/progress" element={<ProtectedRoute><StudentLayout><StudentProgress /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/profile/payments" element={<ProtectedRoute><StudentLayout><StudentPayments /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/profile/credential" element={<ProtectedRoute><StudentLayout><StudentCredential /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/profile/settings" element={<ProtectedRoute><StudentLayout><StudentSettings /></StudentLayout></ProtectedRoute>} />
 
             {/* Admin ERP — protected + staff */}
             <Route path="/admin" element={<ProtectedRoute requireStaff><AdminLayout /></ProtectedRoute>}>
