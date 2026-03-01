@@ -6,7 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 
 const neonGreen = "hsl(152 60% 50%)";
 
-export default function PerformanceActivityChart() {
+export default function PerformanceActivityChart({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate();
   const { data: hourly } = useHourlyActivity();
 
@@ -25,17 +25,17 @@ export default function PerformanceActivityChart() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.4 }}
-      className="rounded-3xl p-5 border border-border/50"
+      className={`rounded-3xl ${compact ? "p-4" : "p-5"} border border-border/50`}
       style={{
         background: "linear-gradient(145deg, hsl(225 25% 10% / 0.9), hsl(225 25% 8%))",
       }}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${neonGreen}15` }}>
-            <Activity className="w-4 h-4" style={{ color: neonGreen }} />
+          <div className={`${compact ? "w-7 h-7" : "w-8 h-8"} rounded-xl flex items-center justify-center`} style={{ background: `${neonGreen}15` }}>
+            <Activity className={`${compact ? "w-3.5 h-3.5" : "w-4 h-4"}`} style={{ color: neonGreen }} />
           </div>
-          <span className="text-sm font-semibold text-foreground">Atividade Hoje</span>
+          <span className={`${compact ? "text-xs" : "text-sm"} font-semibold text-foreground`}>Atividade Hoje</span>
         </div>
         <button
           onClick={() => navigate("/app/progress/today")}
@@ -47,7 +47,7 @@ export default function PerformanceActivityChart() {
       </div>
 
       {hasData ? (
-        <div className="h-36">
+        <div className={compact ? "h-24" : "h-36"}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
               <defs>
@@ -91,7 +91,7 @@ export default function PerformanceActivityChart() {
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="h-36 flex items-center justify-center">
+        <div className={`${compact ? "h-24" : "h-36"} flex items-center justify-center`}>
           <p className="text-xs text-muted-foreground">Nenhuma atividade registrada hoje</p>
         </div>
       )}
