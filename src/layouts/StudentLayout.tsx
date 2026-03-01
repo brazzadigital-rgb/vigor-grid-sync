@@ -1,4 +1,4 @@
-import BottomNavigation from "@/components/BottomNavigation";
+import PremiumBottomNavigation from "@/components/PremiumBottomNavigation";
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -6,7 +6,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <main className="flex-1 pb-28 overflow-y-auto">
         {children}
       </main>
-      <BottomNavigation />
+      <PremiumBottomNavigation />
     </div>
   );
 }
