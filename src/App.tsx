@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "./pages/auth/LoginPage";
 import OnboardingPage from "./pages/auth/OnboardingPage";
+import OnboardingFlowPage from "./pages/auth/OnboardingFlowPage";
 import StudentLayout from "./layouts/StudentLayout";
 import StudentHome from "./pages/student/StudentHome";
 import StudentWorkouts from "./pages/student/StudentWorkouts";
@@ -44,6 +45,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<OnboardingPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/onboarding" element={<ProtectedRoute><OnboardingFlowPage /></ProtectedRoute>} />
 
             {/* Student App — protected */}
             <Route path="/app" element={<ProtectedRoute><StudentLayout><StudentHome /></StudentLayout></ProtectedRoute>} />
