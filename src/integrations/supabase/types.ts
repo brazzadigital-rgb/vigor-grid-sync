@@ -1072,8 +1072,10 @@ export type Database = {
           ingredients_or_materials: Json | null
           is_active: boolean
           is_featured: boolean
+          is_promotion: boolean
           name: string
           price_cents: number
+          promotion_label: string | null
           short_description: string | null
           sku: string | null
           slug: string
@@ -1094,8 +1096,10 @@ export type Database = {
           ingredients_or_materials?: Json | null
           is_active?: boolean
           is_featured?: boolean
+          is_promotion?: boolean
           name: string
           price_cents?: number
+          promotion_label?: string | null
           short_description?: string | null
           sku?: string | null
           slug: string
@@ -1116,8 +1120,10 @@ export type Database = {
           ingredients_or_materials?: Json | null
           is_active?: boolean
           is_featured?: boolean
+          is_promotion?: boolean
           name?: string
           price_cents?: number
+          promotion_label?: string | null
           short_description?: string | null
           sku?: string | null
           slug?: string

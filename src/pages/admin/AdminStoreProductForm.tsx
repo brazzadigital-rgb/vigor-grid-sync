@@ -38,6 +38,8 @@ export default function AdminStoreProductForm() {
     sku: "",
     is_featured: false,
     is_active: true,
+    is_promotion: false,
+    promotion_label: "",
     tags: "",
     imageUrls: [] as string[],
     benefits: "",
@@ -59,6 +61,8 @@ export default function AdminStoreProductForm() {
         sku: existingProduct.sku ?? "",
         is_featured: existingProduct.is_featured,
         is_active: existingProduct.is_active,
+        is_promotion: (existingProduct as any).is_promotion ?? false,
+        promotion_label: (existingProduct as any).promotion_label ?? "",
         tags: (existingProduct.tags ?? []).join(", "),
         imageUrls: (existingProduct.images as string[]) ?? [],
         benefits: ((existingProduct.benefits as string[]) ?? []).join("\n"),
@@ -120,6 +124,8 @@ export default function AdminStoreProductForm() {
       sku: form.sku || null,
       is_featured: form.is_featured,
       is_active: form.is_active,
+      is_promotion: form.is_promotion,
+      promotion_label: form.promotion_label || null,
       tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
       images: form.imageUrls,
       benefits: form.benefits ? form.benefits.split("\n").map((b) => b.trim()).filter(Boolean) : [],
@@ -219,10 +225,15 @@ export default function AdminStoreProductForm() {
         <div><Label>Ingredientes/Material (um por linha)</Label><Textarea value={form.ingredients_or_materials} onChange={(e) => set("ingredients_or_materials", e.target.value)} rows={3} /></div>
         <div><Label>Instruções de uso</Label><Textarea value={form.usage_instructions} onChange={(e) => set("usage_instructions", e.target.value)} rows={3} /></div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-6">
           <div className="flex items-center gap-2"><Switch checked={form.is_featured} onCheckedChange={(c) => set("is_featured", c)} /><Label>Destaque</Label></div>
           <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(c) => set("is_active", c)} /><Label>Ativo</Label></div>
+          <div className="flex items-center gap-2"><Switch checked={form.is_promotion} onCheckedChange={(c) => set("is_promotion", c)} /><Label>Promoção</Label></div>
         </div>
+
+        {form.is_promotion && (
+          <div><Label>Rótulo da promoção (ex: "50% OFF", "Black Friday")</Label><Input value={form.promotion_label} onChange={(e) => set("promotion_label", e.target.value)} placeholder="Ex: 30% OFF" /></div>
+        )}
 
         <Button className="w-full" size="lg" onClick={handleSave} disabled={upsert.isPending}>
           {isEdit ? "Atualizar produto" : "Criar produto"}

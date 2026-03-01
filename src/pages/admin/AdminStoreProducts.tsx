@@ -22,10 +22,10 @@ export default function AdminStoreProducts() {
 
       <div className="rounded-xl border border-border overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-secondary/40 text-muted-foreground text-left"><th className="p-3">Img</th><th className="p-3">Nome</th><th className="p-3">Categoria</th><th className="p-3">Preço</th><th className="p-3">Estoque</th><th className="p-3">Ativo</th><th className="p-3">Destaque</th><th className="p-3"></th></tr></thead>
+          <thead><tr className="bg-secondary/40 text-muted-foreground text-left"><th className="p-3">Img</th><th className="p-3">Nome</th><th className="p-3">Categoria</th><th className="p-3">Preço</th><th className="p-3">Estoque</th><th className="p-3">Ativo</th><th className="p-3">Destaque</th><th className="p-3">Promo</th><th className="p-3"></th></tr></thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
+              <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
             ) : products?.map((p) => (
               <tr key={p.id} className="border-t border-border hover:bg-secondary/20">
                 <td className="p-3">
@@ -39,6 +39,7 @@ export default function AdminStoreProducts() {
                 <td className="p-3 text-muted-foreground">{p.stock_quantity}</td>
                 <td className="p-3"><span className={`text-xs px-2 py-0.5 rounded-full ${p.is_active ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>{p.is_active ? "Sim" : "Não"}</span></td>
                 <td className="p-3"><span className={`text-xs ${p.is_featured ? "text-primary" : "text-muted-foreground"}`}>{p.is_featured ? "★" : "—"}</span></td>
+                <td className="p-3"><span className={`text-xs ${(p as any).is_promotion ? "text-warning font-medium" : "text-muted-foreground"}`}>{(p as any).is_promotion ? "🏷️" : "—"}</span></td>
                 <td className="p-3 flex gap-1">
                   <button onClick={() => navigate(`/admin/store/products/${p.id}/edit`)} className="p-1.5 rounded-lg hover:bg-secondary"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
                   <button onClick={() => { if (confirm("Excluir?")) remove.mutate(p.id, { onSuccess: () => toast.success("Excluído") }); }} className="p-1.5 rounded-lg hover:bg-destructive/10"><Trash2 className="w-4 h-4 text-destructive" /></button>
