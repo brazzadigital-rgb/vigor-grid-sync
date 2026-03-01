@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface ScrollPickerProps {
@@ -14,45 +14,54 @@ export default function ScrollPicker({ items, value, onChange, horizontal = fals
   const itemHeight = 52;
   const itemWidth = 60;
   const visibleCount = 5;
-  const isScrollingRef = useRef(false);
+  const isUserScrolling = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const [mounted, setMounted] = useState(false);
 
   const selectedIndex = items.findIndex(i => i.value === value);
 
   const scrollToIndex = useCallback((index: number, smooth = true) => {
-    if (!containerRef.current) return;
+    const el = containerRef.current;
+    if (!el) return;
     if (horizontal) {
-      const offset = index * itemWidth - (containerRef.current.clientWidth / 2 - itemWidth / 2);
-      containerRef.current.scrollTo({ left: offset, behavior: smooth ? "smooth" : "auto" });
+      const centerOffset = el.clientWidth / 2 - itemWidth / 2;
+      el.scrollTo({ left: index * itemWidth, behavior: smooth ? "smooth" : "auto" });
     } else {
-      const offset = index * itemHeight - (containerRef.current.clientHeight / 2 - itemHeight / 2);
-      containerRef.current.scrollTo({ top: offset, behavior: smooth ? "smooth" : "auto" });
+      const centerOffset = el.clientHeight / 2 - itemHeight / 2;
+      el.scrollTo({ top: index * itemHeight, behavior: smooth ? "smooth" : "auto" });
     }
   }, [horizontal]);
 
+  // Initial scroll to selected value - use requestAnimationFrame to ensure layout is ready
   useEffect(() => {
-    if (selectedIndex >= 0) {
+    if (selectedIndex < 0) return;
+    // Wait for layout
+    const raf = requestAnimationFrame(() => {
       scrollToIndex(selectedIndex, false);
-    }
+      // Double-check after a short delay for container resize
+      setTimeout(() => {
+        scrollToIndex(selectedIndex, false);
+        setMounted(true);
+      }, 50);
+    });
+    return () => cancelAnimationFrame(raf);
   }, [selectedIndex, scrollToIndex]);
 
   const handleScroll = () => {
     if (!containerRef.current) return;
     clearTimeout(timeoutRef.current);
-    isScrollingRef.current = true;
+    isUserScrolling.current = true;
 
     timeoutRef.current = setTimeout(() => {
       if (!containerRef.current) return;
-      isScrollingRef.current = false;
+      isUserScrolling.current = false;
       let centerIndex: number;
       if (horizontal) {
         const scrollLeft = containerRef.current.scrollLeft;
-        const center = scrollLeft + containerRef.current.clientWidth / 2;
-        centerIndex = Math.round((center - itemWidth / 2) / itemWidth);
+        centerIndex = Math.round(scrollLeft / itemWidth);
       } else {
         const scrollTop = containerRef.current.scrollTop;
-        const center = scrollTop + containerRef.current.clientHeight / 2;
-        centerIndex = Math.round((center - itemHeight / 2) / itemHeight);
+        centerIndex = Math.round(scrollTop / itemHeight);
       }
       centerIndex = Math.max(0, Math.min(items.length - 1, centerIndex));
       if (items[centerIndex] && items[centerIndex].value !== value) {
@@ -62,9 +71,13 @@ export default function ScrollPicker({ items, value, onChange, horizontal = fals
     }, 80);
   };
 
+  // The padding elements center the first/last items
+  // For vertical: padding = (containerHeight - itemHeight) / 2 = ((visibleCount * itemHeight) - itemHeight) / 2 = (visibleCount - 1) / 2 * itemHeight
+  // For horizontal: padding = (containerWidth - itemWidth) / 2 → use CSS calc
+
   if (horizontal) {
     return (
-      <div className="relative w-full">
+      <div className={cn("relative w-full", !mounted && "opacity-0")}>
         {/* Triangle indicator */}
         <div className="absolute left-1/2 -translate-x-1/2 top-0 z-10 pointer-events-none">
           <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-primary" />
@@ -108,7 +121,7 @@ export default function ScrollPicker({ items, value, onChange, horizontal = fals
   }
 
   return (
-    <div className="relative w-full flex justify-center">
+    <div className={cn("relative w-full flex justify-center", !mounted && "opacity-0")}>
       {/* Center selection lines */}
       <div
         className="absolute top-1/2 -translate-y-1/2 w-full max-w-[180px] h-[52px] border-t border-b border-primary/30 z-10 pointer-events-none"
