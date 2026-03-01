@@ -1,8 +1,11 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Dumbbell, Clock, Zap, Play, Loader2, Image as ImageIcon, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, Target, Check } from "lucide-react";
+import { ArrowLeft, Dumbbell, Clock, Zap, Play, Loader2, Image as ImageIcon, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, Target, Check, Weight, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyAssignedWorkouts, useWorkoutDays, useMyWorkoutSessions } from "@/hooks/use-supabase-data";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 function ExerciseInstructions({ instructions }: { instructions: string | null }) {
   const [expanded, setExpanded] = useState(false);
@@ -43,6 +46,87 @@ function ExerciseInstructions({ instructions }: { instructions: string | null })
               <p className="text-xs font-semibold text-foreground flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-destructive" /> Erros Comuns</p>
               {parsed.common_mistakes.map((m: string, i: number) => (
                 <p key={i} className="text-xs text-muted-foreground pl-4">⚠ {m}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WeightHistory({ exerciseId }: { exerciseId: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const { user } = useAuth();
+
+  const { data: history, isLoading } = useQuery({
+    queryKey: ["weight-history", exerciseId, user?.id],
+    enabled: !!exerciseId && !!user && expanded,
+    queryFn: async () => {
+      // Get last 10 logs for this exercise from the user's sessions
+      const { data: logs } = await supabase
+        .from("workout_logs")
+        .select("performed_sets, created_at, session_id, workout_sessions!inner(member_id, date)")
+        .eq("exercise_id", exerciseId!)
+        .eq("workout_sessions.member_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (!logs || logs.length === 0) return [];
+
+      return logs.map((log) => {
+        let sets: { set: number; reps: string; weight_kg?: number | null }[] = [];
+        try {
+          const raw = typeof log.performed_sets === "string" ? JSON.parse(log.performed_sets) : log.performed_sets;
+          if (Array.isArray(raw)) sets = raw;
+        } catch {}
+        const date = (log.workout_sessions as any)?.date ?? log.created_at?.split("T")[0];
+        const maxWeight = Math.max(0, ...sets.map(s => s.weight_kg ?? 0));
+        return { date, sets, maxWeight };
+      }).filter(h => h.maxWeight > 0);
+    },
+  });
+
+  if (!exerciseId) return null;
+
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-xs text-accent-foreground/70 font-medium"
+      >
+        <Weight className="w-3 h-3" />
+        {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        {expanded ? "Ocultar cargas" : "Histórico de cargas"}
+      </button>
+      {expanded && (
+        <div className="animate-slide-up">
+          {isLoading ? (
+            <div className="flex items-center gap-2 py-2">
+              <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Carregando...</span>
+            </div>
+          ) : !history || history.length === 0 ? (
+            <p className="text-xs text-muted-foreground/60 py-1">Nenhum registro de carga encontrado</p>
+          ) : (
+            <div className="space-y-2">
+              {history.slice(0, 5).map((entry, idx) => (
+                <div key={idx} className="flex items-center gap-3 rounded-xl bg-secondary/40 border border-border/50 px-3 py-2">
+                  <span className="text-[10px] text-muted-foreground font-mono w-20 shrink-0">
+                    {new Date(entry.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap flex-1">
+                    {entry.sets.filter(s => s.weight_kg).map((s, si) => (
+                      <span key={si} className="text-xs font-semibold text-foreground bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5">
+                        S{s.set}: {s.weight_kg}kg
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <TrendingUp className="w-3 h-3 text-primary" />
+                    <span className="text-xs font-bold text-primary">{entry.maxWeight}kg</span>
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -147,6 +231,8 @@ export default function WorkoutDetail() {
                 </div>
                 {/* AI Instructions */}
                 <ExerciseInstructions instructions={item.exercises?.instructions ?? null} />
+                {/* Weight History */}
+                <WeightHistory exerciseId={item.exercise_id ?? null} />
               </div>
             </div>
           ))}
