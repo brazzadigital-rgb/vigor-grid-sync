@@ -137,7 +137,9 @@ export default function AdminProgramDetail() {
     setGeneratingMedia(null);
   };
 
-  // Generate all exercise media at once
+  // Generate all exercise media sequentially with delay to avoid rate limits
+  const [generatingAll, setGeneratingAll] = useState(false);
+
   const handleGenerateAll = async () => {
     const allItems = (days ?? []).flatMap((d: any) => d.workout_items ?? []);
     const itemsWithoutMedia = allItems.filter((item: any) => item.exercises && !item.exercises.media_url);
@@ -147,12 +149,18 @@ export default function AdminProgramDetail() {
       return;
     }
 
-    toast({ title: `Gerando ${itemsWithoutMedia.length} ilustrações...`, description: "Isso pode levar alguns segundos." });
+    setGeneratingAll(true);
+    toast({ title: `Gerando ${itemsWithoutMedia.length} ilustrações...`, description: "Isso pode levar alguns minutos." });
 
-    for (const item of itemsWithoutMedia) {
-      await handleGenerateMedia(item);
+    for (let i = 0; i < itemsWithoutMedia.length; i++) {
+      await handleGenerateMedia(itemsWithoutMedia[i]);
+      // Wait 3s between requests to avoid rate limiting
+      if (i < itemsWithoutMedia.length - 1) {
+        await new Promise(r => setTimeout(r, 3000));
+      }
     }
 
+    setGeneratingAll(false);
     toast({ title: "Todas as ilustrações foram geradas! 🎉" });
   };
 
@@ -181,8 +189,8 @@ export default function AdminProgramDetail() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={handleGenerateAll} className="gap-1.5">
-            <Sparkles className="w-4 h-4" /> Gerar Todas IA
+          <Button size="sm" variant="outline" onClick={handleGenerateAll} disabled={generatingAll} className="gap-1.5">
+            {generatingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} {generatingAll ? "Gerando..." : "Gerar Todas IA"}
           </Button>
           <Button size="sm" onClick={openCreateDay}><Plus className="w-4 h-4" /> Novo Dia</Button>
         </div>

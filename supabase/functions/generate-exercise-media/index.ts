@@ -6,6 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const res = await fetch(url, options);
+    if (res.status === 429 && attempt < maxRetries - 1) {
+      const delay = Math.pow(2, attempt + 1) * 2000 + Math.random() * 1000;
+      console.log(`Rate limited, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise(r => setTimeout(r, delay));
+      continue;
+    }
+    return res;
+  }
+  throw new Error("Max retries exceeded");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -34,7 +48,7 @@ ${equipment ? `Equipment used: ${equipment}.` : ""}
 Dark background with purple accent lighting. Clean, modern anatomical style showing a fit athlete performing the exercise with proper posture. 
 Show muscle engagement areas highlighted in purple. Ultra high resolution, professional quality fitness illustration.`;
 
-    const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const imageResponse = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -82,7 +96,7 @@ Return a JSON object with:
 
 Return ONLY valid JSON, no markdown.`;
 
-    const textResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const textResponse = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
