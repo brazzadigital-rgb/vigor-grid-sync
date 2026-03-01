@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronLeft, Upload, X, ImageIcon, Loader2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { useAdminProductById, useAdminProductMutations } from "@/hooks/use-admin-store";
 import { useAdminCategories } from "@/hooks/use-admin-store";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 function slugify(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -22,6 +23,8 @@ export default function AdminStoreProductForm() {
   const { data: existingProduct } = useAdminProductById(id);
   const { data: categories } = useAdminCategories();
   const { upsert } = useAdminProductMutations();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -36,7 +39,7 @@ export default function AdminStoreProductForm() {
     is_featured: false,
     is_active: true,
     tags: "",
-    images: "",
+    imageUrls: [] as string[],
     benefits: "",
     ingredients_or_materials: "",
     usage_instructions: "",
@@ -57,13 +60,50 @@ export default function AdminStoreProductForm() {
         is_featured: existingProduct.is_featured,
         is_active: existingProduct.is_active,
         tags: (existingProduct.tags ?? []).join(", "),
-        images: ((existingProduct.images as string[]) ?? []).join("\n"),
+        imageUrls: (existingProduct.images as string[]) ?? [],
         benefits: ((existingProduct.benefits as string[]) ?? []).join("\n"),
         ingredients_or_materials: ((existingProduct.ingredients_or_materials as string[]) ?? []).join("\n"),
         usage_instructions: existingProduct.usage_instructions ?? "",
       });
     }
   }, [existingProduct]);
+
+  const handleUploadImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const newUrls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      const ext = file.name.split(".").pop();
+      const path = `products/${crypto.randomUUID()}.${ext}`;
+
+      const { error } = await supabase.storage
+        .from("store-products")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+
+      if (error) {
+        toast.error(`Erro ao enviar ${file.name}`);
+        continue;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("store-products")
+        .getPublicUrl(path);
+
+      newUrls.push(urlData.publicUrl);
+    }
+
+    setForm((prev) => ({ ...prev, imageUrls: [...prev.imageUrls, ...newUrls] }));
+    setUploading(false);
+    if (newUrls.length > 0) toast.success(`${newUrls.length} imagem(ns) enviada(s)`);
+  };
+
+  const removeImage = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      imageUrls: prev.imageUrls.filter((_, i) => i !== index),
+    }));
+  };
 
   const handleSave = () => {
     if (!form.name) { toast.error("Nome obrigatório"); return; }
@@ -81,7 +121,7 @@ export default function AdminStoreProductForm() {
       is_featured: form.is_featured,
       is_active: form.is_active,
       tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
-      images: form.images ? form.images.split("\n").map((u) => u.trim()).filter(Boolean) : [],
+      images: form.imageUrls,
       benefits: form.benefits ? form.benefits.split("\n").map((b) => b.trim()).filter(Boolean) : [],
       ingredients_or_materials: form.ingredients_or_materials ? form.ingredients_or_materials.split("\n").map((i) => i.trim()).filter(Boolean) : [],
       usage_instructions: form.usage_instructions || null,
@@ -121,6 +161,52 @@ export default function AdminStoreProductForm() {
         <div><Label>Descrição curta</Label><Input value={form.short_description} onChange={(e) => set("short_description", e.target.value)} /></div>
         <div><Label>Descrição completa</Label><Textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={4} /></div>
 
+        {/* Image Upload */}
+        <div className="space-y-2">
+          <Label>Imagens do produto</Label>
+
+          {/* Preview grid */}
+          {form.imageUrls.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {form.imageUrls.map((url, i) => (
+                <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-secondary/40">
+                  <img src={url} alt={`Produto ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-destructive/90 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Upload button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUploadImages(e.target.files)}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-secondary/20 text-muted-foreground hover:text-foreground transition-all cursor-pointer disabled:opacity-50"
+          >
+            {uploading ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /><span className="text-sm">Enviando...</span></>
+            ) : (
+              <><Upload className="w-5 h-5" /><span className="text-sm">Clique para enviar imagens</span></>
+            )}
+          </button>
+          <p className="text-xs text-muted-foreground">PNG, JPG ou WebP. Múltiplas imagens permitidas.</p>
+        </div>
+
         <div className="grid grid-cols-3 gap-4">
           <div><Label>Preço (centavos) *</Label><Input type="number" value={form.price_cents} onChange={(e) => set("price_cents", parseInt(e.target.value) || 0)} /></div>
           <div><Label>Preço "de" (centavos)</Label><Input type="number" value={form.compare_at_price_cents ?? ""} onChange={(e) => set("compare_at_price_cents", parseInt(e.target.value) || null)} /></div>
@@ -129,7 +215,6 @@ export default function AdminStoreProductForm() {
 
         <div><Label>SKU</Label><Input value={form.sku} onChange={(e) => set("sku", e.target.value)} /></div>
         <div><Label>Tags (separadas por vírgula)</Label><Input value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="whey, proteina, isolado" /></div>
-        <div><Label>Imagens (URLs, uma por linha)</Label><Textarea value={form.images} onChange={(e) => set("images", e.target.value)} rows={3} placeholder="https://..." /></div>
         <div><Label>Benefícios (um por linha)</Label><Textarea value={form.benefits} onChange={(e) => set("benefits", e.target.value)} rows={3} /></div>
         <div><Label>Ingredientes/Material (um por linha)</Label><Textarea value={form.ingredients_or_materials} onChange={(e) => set("ingredients_or_materials", e.target.value)} rows={3} /></div>
         <div><Label>Instruções de uso</Label><Textarea value={form.usage_instructions} onChange={(e) => set("usage_instructions", e.target.value)} rows={3} /></div>
