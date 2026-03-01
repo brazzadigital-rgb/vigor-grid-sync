@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Search, Plus, MoreHorizontal, Download, Loader2, Trash2, Edit, Dumbbell } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Download, Loader2, Trash2, Edit, Dumbbell, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useGymMemberships, useGymPlans, useGymWorkoutTemplates, useGymAssignedWorkouts } from "@/hooks/use-supabase-data";
 import { useCreateMembership, useUpdateMembership, useDeleteMembership, useAssignWorkout, useRemoveAssignedWorkout } from "@/hooks/use-admin-mutations";
+import { useGenerateCredential } from "@/hooks/use-henry-integration";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +41,7 @@ export default function AdminUsers() {
   const deleteMembership = useDeleteMembership();
   const assignWorkout = useAssignWorkout();
   const removeAssigned = useRemoveAssignedWorkout();
+  const generateCredential = useGenerateCredential();
   const { toast } = useToast();
 
   const filtered = (memberships ?? []).filter((m: any) => {
@@ -222,6 +224,7 @@ export default function AdminUsers() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openAssign(member)}><Dumbbell className="w-4 h-4 mr-2" /> Atribuir Treino</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => generateCredential.mutate(member.member_id)}><QrCode className="w-4 h-4 mr-2" /> Gerar Credencial</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(member)}><Edit className="w-4 h-4 mr-2" /> Editar</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(member.id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Remover</DropdownMenuItem>
                         </DropdownMenuContent>
