@@ -1,4 +1,5 @@
 import { Flame, Calendar, ChevronRight, Dumbbell, TrendingUp, Trophy, Loader2, Sparkles, Target, Clock } from "lucide-react";
+import homeHero from "@/assets/home-hero.jpg";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,14 +29,16 @@ export default function StudentHome() {
 
   return (
     <div className="px-5 pt-12 pb-6 max-w-lg mx-auto space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-0.5">
-          <p className="text-muted-foreground text-sm">{getGreeting()},</p>
-          <h1 className="text-2xl font-bold text-foreground">{firstName} 👋</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-1.5">
+      {/* Hero Banner */}
+      <div className="relative rounded-2xl overflow-hidden">
+        <img src={homeHero} alt="Fitness motivation" className="w-full h-40 object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between">
+          <div className="space-y-0.5">
+            <p className="text-muted-foreground text-sm">{getGreeting()},</p>
+            <h1 className="text-2xl font-bold text-foreground">{firstName} 👋</h1>
+          </div>
+          <div className="flex items-center gap-1.5 bg-card/80 backdrop-blur border border-border rounded-full px-3 py-1.5">
             <Flame className="w-4 h-4 text-warning" />
             <span className="text-sm font-semibold text-foreground">{stats?.streak ?? 0}</span>
           </div>
