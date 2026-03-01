@@ -15,7 +15,6 @@ const menuItems = [
   { icon: Target, label: "Meus Objetivos", description: "Acompanhe suas metas", to: "/app/goals" },
   { icon: Plus, label: "Adicionar Meta", description: "Criar novo objetivo", to: "/app/goals/new" },
   { icon: Trophy, label: "Minhas Conquistas", description: "Badges e troféus", to: "/app/profile/badges" },
-  { icon: Settings, label: "Configurações", description: "Preferências do app", to: "/app/profile/settings" },
 ];
 
 export default function StudentProfile() {
