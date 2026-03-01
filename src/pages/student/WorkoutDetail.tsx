@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Dumbbell, Clock, Zap, Play, Loader2, Image as ImageIcon, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, Target } from "lucide-react";
+import { ArrowLeft, Dumbbell, Clock, Zap, Play, Loader2, Image as ImageIcon, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, Target, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMyAssignedWorkouts, useWorkoutDays } from "@/hooks/use-supabase-data";
+import { useMyAssignedWorkouts, useWorkoutDays, useMyWorkoutSessions } from "@/hooks/use-supabase-data";
 import { useState } from "react";
 
 function ExerciseInstructions({ instructions }: { instructions: string | null }) {
@@ -60,9 +60,15 @@ export default function WorkoutDetail() {
   const workout = assigned?.find(w => w.id === id);
   const templateId = workout?.template_id;
   const { data: days, isLoading } = useWorkoutDays(templateId);
+  const { data: sessions } = useMyWorkoutSessions();
 
   const allItems = days?.flatMap(d => d.workout_items ?? []) ?? [];
   const template = workout?.workout_templates;
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const isTodayDone = (sessions ?? []).some(
+    s => s.assigned_workout_id === id && s.status === "done" && s.date === todayStr
+  );
 
   if (isLoading) {
     return (
@@ -96,9 +102,15 @@ export default function WorkoutDetail() {
         </div>
       )}
 
-      <Button variant="glow" size="lg" className="w-full" onClick={() => navigate(`/app/workouts/${id}/execute`)}>
-        <Play className="w-5 h-5" /> Iniciar Treino
-      </Button>
+      {isTodayDone ? (
+        <Button variant="outline" size="lg" className="w-full" disabled>
+          <Check className="w-5 h-5" /> Treino Concluído Hoje ✓
+        </Button>
+      ) : (
+        <Button variant="glow" size="lg" className="w-full" onClick={() => navigate(`/app/workouts/${id}/execute`)}>
+          <Play className="w-5 h-5" /> Iniciar Treino
+        </Button>
+      )}
 
       {/* Workout Days */}
       {(days ?? []).map((day) => (
