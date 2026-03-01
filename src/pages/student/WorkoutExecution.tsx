@@ -129,56 +129,107 @@ export default function WorkoutExecution() {
   const performanceScore = Math.min(100, Math.round((exercises.length / Math.max(1, exercises.length)) * 80 + Math.min(20, elapsed / 60)));
 
   if (finished) {
+    const particles = Array.from({ length: 12 }, (_, i) => {
+      const angle = (i / 12) * 360;
+      const distance = 60 + Math.random() * 40;
+      const tx = Math.cos((angle * Math.PI) / 180) * distance;
+      const ty = Math.sin((angle * Math.PI) / 180) * distance;
+      const colors = ["hsl(258 82% 60%)", "hsl(38 92% 60%)", "hsl(152 60% 50%)", "hsl(280 80% 55%)"];
+      return { tx, ty, color: colors[i % colors.length], delay: i * 0.05, size: 4 + Math.random() * 4 };
+    });
+
     return (
-      <div className="px-5 pt-14 pb-6 max-w-lg mx-auto flex flex-col items-center justify-center min-h-[80vh] space-y-6 text-center">
-        {/* Completion Animation */}
-        <div className="relative">
-          <div className="w-24 h-24 rounded-full bg-success/15 border-2 border-success/40 flex items-center justify-center glow-purple animate-bounce">
-            <Check className="w-12 h-12 text-success" />
+      <div className="px-5 pt-10 pb-6 max-w-lg mx-auto flex flex-col items-center justify-center min-h-[85vh] space-y-8 text-center overflow-hidden">
+        {/* Hero Completion Animation */}
+        <div className="relative flex items-center justify-center">
+          {/* Expanding pulse rings */}
+          <div className="absolute w-32 h-32 rounded-full border border-primary/30 animate-completion-pulse-ring" />
+          <div className="absolute w-32 h-32 rounded-full border border-primary/20 animate-completion-pulse-ring" style={{ animationDelay: "0.5s" }} />
+          <div className="absolute w-32 h-32 rounded-full border border-primary/10 animate-completion-pulse-ring" style={{ animationDelay: "1s" }} />
+
+          {/* Particles */}
+          {particles.map((p, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full animate-completion-particle"
+              style={{
+                width: p.size,
+                height: p.size,
+                backgroundColor: p.color,
+                "--tx": `${p.tx}px`,
+                "--ty": `${p.ty}px`,
+                animationDelay: `${0.6 + p.delay}s`,
+                opacity: 0,
+              } as any}
+            />
+          ))}
+
+          {/* Main circle */}
+          <div className="relative w-28 h-28 animate-completion-ring">
+            <div className="w-full h-full rounded-full bg-gradient-to-br from-primary via-accent to-primary/80 p-[3px]">
+              <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                <Check className="w-12 h-12 text-primary animate-completion-check" />
+              </div>
+            </div>
           </div>
-          <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-warning/20 border border-warning/30 flex items-center justify-center animate-pulse">
-            <span className="text-lg">🔥</span>
+        </div>
+
+        {/* Title */}
+        <div className="space-y-2 animate-completion-slide-up" style={{ animationDelay: "0.6s" }}>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            Treino Concluído
+          </h1>
+          <p className="text-sm text-muted-foreground">Você deu mais um passo rumo ao seu objetivo</p>
+        </div>
+
+        {/* Performance Score — large hero stat */}
+        <div className="animate-completion-slide-up w-full" style={{ animationDelay: "0.8s" }}>
+          <div className="relative rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-primary/5 p-6 overflow-hidden">
+            {/* Shimmer overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer pointer-events-none" />
+            <p className="text-xs text-primary font-semibold uppercase tracking-[0.2em] mb-3">Score de Performance</p>
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-6xl font-black text-gradient-purple animate-completion-counter" style={{ animationDelay: "1.2s" }}>
+                {performanceScore}
+              </span>
+              <span className="text-lg font-medium text-muted-foreground">/100</span>
+            </div>
+            <p className="text-sm mt-2">
+              {performanceScore >= 90
+                ? <span className="text-gradient-gold font-semibold">🏆 Performance Excepcional</span>
+                : performanceScore >= 70
+                  ? <span className="text-success font-medium">💪 Muito Bom</span>
+                  : <span className="text-info font-medium">🎯 Continue Evoluindo</span>
+              }
+            </p>
           </div>
         </div>
 
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-foreground">Treino Concluído! 🎉</h1>
-          <p className="text-sm text-muted-foreground">Parabéns, você arrasou!</p>
-        </div>
-
-        {/* Performance Score */}
-        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 w-full glow-purple">
-          <p className="text-xs text-primary font-medium uppercase tracking-wider mb-2">Performance</p>
-          <p className="text-5xl font-bold text-gradient-purple">{performanceScore}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {performanceScore >= 90 ? "Excelente! 🏆" : performanceScore >= 70 ? "Muito bom! 💪" : "Continue assim! 🎯"}
-          </p>
-        </div>
-
-        {/* Stats Grid */}
+        {/* Stats Grid — glass cards */}
         <div className="grid grid-cols-3 gap-3 w-full">
-          <div className="rounded-2xl border border-border bg-card p-4 text-center space-y-1">
-            <Timer className="w-5 h-5 mx-auto text-info" />
-            <p className="text-lg font-bold text-foreground">{formatTime(elapsed)}</p>
-            <p className="text-[10px] text-muted-foreground">Duração</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4 text-center space-y-1">
-            <Flame className="w-5 h-5 mx-auto text-warning" />
-            <p className="text-lg font-bold text-foreground">{estimatedCalories}</p>
-            <p className="text-[10px] text-muted-foreground">Calorias</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4 text-center space-y-1">
-            <Check className="w-5 h-5 mx-auto text-success" />
-            <p className="text-lg font-bold text-foreground">{exercises.length}</p>
-            <p className="text-[10px] text-muted-foreground">Exercícios</p>
-          </div>
+          {[
+            { icon: <Timer className="w-5 h-5" />, value: formatTime(elapsed), label: "Duração", color: "text-info", delay: "1s" },
+            { icon: <Flame className="w-5 h-5" />, value: `${estimatedCalories}`, label: "Calorias", color: "text-warning", delay: "1.1s" },
+            { icon: <Check className="w-5 h-5" />, value: `${exercises.length}`, label: "Exercícios", color: "text-success", delay: "1.2s" },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm p-4 text-center space-y-1.5 animate-completion-counter"
+              style={{ animationDelay: stat.delay }}
+            >
+              <div className={`mx-auto ${stat.color}`}>{stat.icon}</div>
+              <p className="text-xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="w-full space-y-3 pt-2">
-          <Button variant="glow" size="lg" className="w-full" onClick={() => navigate("/app")}>
+        {/* Actions */}
+        <div className="w-full space-y-3 pt-2 animate-completion-slide-up" style={{ animationDelay: "1.4s" }}>
+          <Button variant="glow" size="lg" className="w-full h-14 text-base font-semibold" onClick={() => navigate("/app")}>
             Voltar ao Início
           </Button>
-          <Button variant="outline" size="lg" className="w-full" onClick={() => navigate("/app/workouts")}>
+          <Button variant="outline" size="lg" className="w-full h-12" onClick={() => navigate("/app/workouts")}>
             Ver Treinos
           </Button>
         </div>
