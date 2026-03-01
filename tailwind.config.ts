@@ -97,6 +97,14 @@ export default {
           from: { opacity: "0", transform: "translateY(10px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        shake: {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "15%": { transform: "rotate(12deg)" },
+          "30%": { transform: "rotate(-10deg)" },
+          "45%": { transform: "rotate(8deg)" },
+          "60%": { transform: "rotate(-6deg)" },
+          "75%": { transform: "rotate(3deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
