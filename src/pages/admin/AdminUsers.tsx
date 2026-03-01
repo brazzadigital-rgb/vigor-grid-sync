@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, MoreHorizontal, Download, Loader2, Trash2, Edit, Dumbbell, QrCode } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Download, Loader2, Trash2, Edit, Dumbbell, QrCode, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -24,7 +24,9 @@ export default function AdminUsers() {
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
+  const [planMember, setPlanMember] = useState<any>(null);
   const [assignMember, setAssignMember] = useState<any>(null);
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
@@ -74,6 +76,18 @@ export default function AdminUsers() {
     setAssignMember(member);
     setSelectedTemplateId(templates?.[0]?.id ?? "");
     setAssignDialogOpen(true);
+  };
+
+  const openPlanDialog = (member: any) => {
+    setPlanMember(member);
+    setNewPlanId(member.plan_id ?? "");
+    setPlanDialogOpen(true);
+  };
+
+  const handleSavePlan = async () => {
+    if (!planMember) return;
+    await updateMembership.mutateAsync({ id: planMember.id, plan_id: newPlanId || null });
+    setPlanDialogOpen(false);
   };
 
   const getMemberAssignedWorkouts = (memberId: string) => {
@@ -221,6 +235,7 @@ export default function AdminUsers() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openAssign(member)}><Dumbbell className="w-4 h-4 mr-2" /> Atribuir Treino</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openPlanDialog(member)}><CreditCard className="w-4 h-4 mr-2" /> Atribuir Plano</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => generateCredential.mutate(member.member_id)}><QrCode className="w-4 h-4 mr-2" /> Gerar Credencial</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(member)}><Edit className="w-4 h-4 mr-2" /> Editar</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(member.id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Remover</DropdownMenuItem>
@@ -319,6 +334,41 @@ export default function AdminUsers() {
             <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleAssign} disabled={!selectedTemplateId || assignWorkout.isPending}>
               {assignWorkout.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Atribuir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Plan Dialog */}
+      <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atribuir Plano</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Aluno: <span className="font-medium text-foreground">{planMember?.profiles?.name ?? "—"}</span>
+            </p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Plano</label>
+              <select value={newPlanId} onChange={e => setNewPlanId(e.target.value)}
+                className="w-full h-10 rounded-xl bg-secondary border border-border px-4 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all">
+                <option value="">Sem plano</option>
+                {(plans ?? []).map((p: any) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — R$ {(p.price_cents / 100).toFixed(2)} ({p.billing_cycle === "monthly" ? "Mensal" : p.billing_cycle === "semiannual" ? "Semestral" : p.billing_cycle === "annual" ? "Anual" : "Avulso"})
+                  </option>
+                ))}
+              </select>
+            </div>
+            {planMember?.plans?.name && (
+              <p className="text-xs text-muted-foreground">Plano atual: <span className="font-medium text-foreground">{planMember.plans.name}</span></p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPlanDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSavePlan} disabled={updateMembership.isPending}>
+              {updateMembership.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Plano"}
             </Button>
           </DialogFooter>
         </DialogContent>
