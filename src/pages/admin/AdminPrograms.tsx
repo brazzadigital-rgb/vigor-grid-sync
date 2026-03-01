@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Dumbbell, Copy, Loader2, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Dumbbell, Copy, Loader2, Edit, Trash2, MoreHorizontal, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -15,6 +16,7 @@ const goalLabels: Record<string, string> = {
 };
 
 export default function AdminPrograms() {
+  const navigate = useNavigate();
   const { data: templates, isLoading } = useGymWorkoutTemplates();
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
@@ -64,7 +66,7 @@ export default function AdminPrograms() {
         {(templates ?? []).map((t: any) => {
           const goalKey = t.goal_type ?? "outro";
           return (
-            <div key={t.id} className="rounded-2xl border border-border bg-card p-5 space-y-4 hover:border-primary/30 transition-all">
+            <div key={t.id} className="rounded-2xl border border-border bg-card p-5 space-y-4 hover:border-primary/30 transition-all cursor-pointer" onClick={() => navigate(`/admin/programs/${t.id}`)}>
               <div className="flex items-center justify-between">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Dumbbell className="w-5 h-5 text-primary" />
@@ -76,7 +78,8 @@ export default function AdminPrograms() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><button className="p-1 rounded-lg hover:bg-secondary text-muted-foreground"><MoreHorizontal className="w-4 h-4" /></button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openEdit(t)}><Edit className="w-4 h-4 mr-2" /> Editar</DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/admin/programs/${t.id}`); }}><Eye className="w-4 h-4 mr-2" /> Ver Dias</DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(t); }}><Edit className="w-4 h-4 mr-2" /> Editar</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDelete(t.id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Remover</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
