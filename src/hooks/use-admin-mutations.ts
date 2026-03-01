@@ -262,6 +262,8 @@ export function useAssignWorkout() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["gym-assigned-workouts"] });
       qc.invalidateQueries({ queryKey: ["my-sessions"] });
+      qc.invalidateQueries({ queryKey: ["my-assigned-workouts"] });
+      qc.invalidateQueries({ queryKey: ["my-workout-stats"] });
       toast({ title: "Treino atribuído!", description: "Sessões geradas no calendário." });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
@@ -276,7 +278,13 @@ export function useRemoveAssignedWorkout() {
       const { error } = await supabase.from("assigned_workouts").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gym-assigned-workouts"] }); toast({ title: "Treino removido!" }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gym-assigned-workouts"] });
+      qc.invalidateQueries({ queryKey: ["my-assigned-workouts"] });
+      qc.invalidateQueries({ queryKey: ["my-sessions"] });
+      qc.invalidateQueries({ queryKey: ["my-workout-stats"] });
+      toast({ title: "Treino removido!" });
+    },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 }
