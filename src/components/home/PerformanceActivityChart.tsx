@@ -1,24 +1,27 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { Activity, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useHourlyActivity } from "@/hooks/use-performance-data";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { useMemo } from "react";
 
 const neonGreen = "hsl(152 60% 50%)";
 
-export default function PerformanceActivityChart({ compact = false }: { compact?: boolean }) {
+export default memo(function PerformanceActivityChart({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate();
   const { data: hourly } = useHourlyActivity();
 
   const currentHour = new Date().getHours();
-  const chartData = (hourly ?? [])
-    .filter((h) => h.hour <= currentHour + 1)
-    .map((h) => ({
-      hour: `${String(h.hour).padStart(2, "0")}h`,
-      calorias: h.calories,
-    }));
-
-  const hasData = chartData.some((d) => d.calorias > 0);
+  const { chartData, hasData } = useMemo(() => {
+    const data = (hourly ?? [])
+      .filter((h) => h.hour <= currentHour + 1)
+      .map((h) => ({
+        hour: `${String(h.hour).padStart(2, "0")}h`,
+        calorias: h.calories,
+      }));
+    return { chartData: data, hasData: data.some((d) => d.calorias > 0) };
+  }, [hourly, currentHour]);
 
   return (
     <motion.div
@@ -85,7 +88,7 @@ export default function PerformanceActivityChart({ compact = false }: { compact?
                 strokeWidth={2}
                 fill="url(#chartFill)"
                 dot={false}
-                animationDuration={1500}
+                animationDuration={1200}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -97,4 +100,4 @@ export default function PerformanceActivityChart({ compact = false }: { compact?
       )}
     </motion.div>
   );
-}
+});

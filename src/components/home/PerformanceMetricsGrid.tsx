@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Flame, Timer, Zap, Target, TrendingUp, Footprints } from "lucide-react";
 import type { DailyMetrics } from "@/hooks/use-performance-data";
@@ -17,18 +18,15 @@ interface MetricCardProps {
   delay: number;
 }
 
-function MetricCard({ icon, label, value, sub, accent = neonGreen, delay }: MetricCardProps) {
+const MetricCard = memo(function MetricCard({ icon, label, value, sub, accent = neonGreen, delay }: MetricCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      className="rounded-2xl p-3.5 border border-border/50 cursor-default transition-shadow duration-200"
+      className="rounded-2xl p-3.5 border border-border/50 cursor-default"
       style={{
         background: "linear-gradient(145deg, hsl(225 25% 10% / 0.9), hsl(225 25% 8%))",
-        backdropFilter: "blur(12px)",
       }}
     >
       <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-2" style={{ background: `${accent}15` }}>
@@ -39,9 +37,9 @@ function MetricCard({ icon, label, value, sub, accent = neonGreen, delay }: Metr
       {sub && <p className="text-[9px] text-muted-foreground/60 mt-0.5">{sub}</p>}
     </motion.div>
   );
-}
+});
 
-export default function PerformanceMetricsGrid({ metrics }: Props) {
+export default memo(function PerformanceMetricsGrid({ metrics }: Props) {
   const formatTime = (mins: number) => {
     if (mins >= 60) {
       const h = Math.floor(mins / 60);
@@ -51,7 +49,7 @@ export default function PerformanceMetricsGrid({ metrics }: Props) {
     return `${mins}m`;
   };
 
-  const cards: MetricCardProps[] = [
+  const cards = useMemo<MetricCardProps[]>(() => [
     {
       icon: <Flame className="w-4 h-4" />,
       label: "Calorias",
@@ -100,7 +98,7 @@ export default function PerformanceMetricsGrid({ metrics }: Props) {
       accent: neonGreen,
       delay: 0.35,
     },
-  ];
+  ], [metrics.calories_burned, metrics.calories_goal, metrics.active_minutes, metrics.intensity_score, metrics.workouts_completed_today, metrics.workouts_completed_week, metrics.weekly_workout_goal, metrics.streak_days, metrics.distance_km]);
 
   return (
     <div className="grid grid-cols-3 gap-3">
@@ -109,4 +107,4 @@ export default function PerformanceMetricsGrid({ metrics }: Props) {
       ))}
     </div>
   );
-}
+});

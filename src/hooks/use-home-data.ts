@@ -25,6 +25,8 @@ export function useNotifications() {
   return useQuery({
     queryKey: ["notifications", user?.id],
     enabled: !!user,
+    staleTime: 30_000,
+    gcTime: 120_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notifications")
@@ -78,6 +80,7 @@ export function useDailyCalories() {
   return useQuery({
     queryKey: ["daily-calories", user?.id],
     enabled: !!user,
+    staleTime: 30_000,
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
       const { data: sessions } = await supabase
@@ -97,7 +100,6 @@ export function useDailyCalories() {
 
       const burned = (logs ?? []).reduce((sum, l) => {
         if (l.calories_estimated && l.calories_estimated > 0) return sum + l.calories_estimated;
-        // Estimate ~8 cal/min if no calories recorded
         const mins = (l.duration_seconds ?? 0) / 60;
         return sum + Math.round(mins * 8);
       }, 0);
@@ -112,6 +114,7 @@ export function useWeeklyWorkoutTime() {
   return useQuery({
     queryKey: ["weekly-workout-time", user?.id],
     enabled: !!user,
+    staleTime: 60_000,
     queryFn: async () => {
       const now = new Date();
       const startOfWeek = new Date(now);
@@ -142,6 +145,8 @@ export function useGymInfo() {
   return useQuery({
     queryKey: ["gym-info", profile?.gym_id],
     enabled: !!profile?.gym_id,
+    staleTime: 300_000, // gym info rarely changes - 5min
+    gcTime: 600_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("gyms")
@@ -159,6 +164,8 @@ export function useBodyFocusExercises() {
   return useQuery({
     queryKey: ["body-focus-exercises", profile?.gym_id],
     enabled: !!profile?.gym_id,
+    staleTime: 300_000, // exercises rarely change - 5min
+    gcTime: 600_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercises")

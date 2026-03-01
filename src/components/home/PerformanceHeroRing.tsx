@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Flame, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,7 @@ interface Props {
   metrics: DailyMetrics;
 }
 
-export default function PerformanceHeroRing({ metrics }: Props) {
+export default memo(function PerformanceHeroRing({ metrics }: Props) {
   const navigate = useNavigate();
   const pct = metrics.calories_goal > 0
     ? Math.min((metrics.calories_burned / metrics.calories_goal) * 100, 100)
@@ -16,10 +16,12 @@ export default function PerformanceHeroRing({ metrics }: Props) {
   const remaining = Math.max(0, metrics.calories_goal - metrics.calories_burned);
   const hasWorkoutToday = metrics.workouts_completed_today > 0;
 
-  // Count-up animation
+  // Count-up animation with reduced setState calls
   const [displayCal, setDisplayCal] = useState(0);
   const [displayPct, setDisplayPct] = useState(0);
   const animRef = useRef(0);
+  const lastCalRef = useRef(-1);
+  const lastPctRef = useRef(-1);
 
   useEffect(() => {
     const duration = 1400;
@@ -31,8 +33,17 @@ export default function PerformanceHeroRing({ metrics }: Props) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayCal(Math.round(targetCal * eased));
-      setDisplayPct(Math.round(targetPct * eased));
+      const newCal = Math.round(targetCal * eased);
+      const newPct = Math.round(targetPct * eased);
+      // Only setState when value actually changes
+      if (newCal !== lastCalRef.current) {
+        lastCalRef.current = newCal;
+        setDisplayCal(newCal);
+      }
+      if (newPct !== lastPctRef.current) {
+        lastPctRef.current = newPct;
+        setDisplayPct(newPct);
+      }
       if (progress < 1) animRef.current = requestAnimationFrame(animate);
     };
     animRef.current = requestAnimationFrame(animate);
@@ -52,15 +63,15 @@ export default function PerformanceHeroRing({ metrics }: Props) {
       transition={{ duration: 0.5 }}
       className="relative rounded-3xl overflow-hidden p-5 border border-primary/30"
     >
-      {/* Animated gradient background — same style as "Meu Plano" */}
+      {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-card to-accent/10" />
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer pointer-events-none" />
 
-      {/* Floating orbs */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-3xl animate-pulse" />
-      <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-success/10 blur-2xl animate-pulse" style={{ animationDelay: "1s" }} />
+      {/* Floating orbs — using CSS will-change for GPU acceleration */}
+      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-3xl animate-pulse will-change-[opacity]" />
+      <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-success/10 blur-2xl animate-pulse will-change-[opacity]" style={{ animationDelay: "1s" }} />
 
-      {/* Neon green glow on ring side */}
+      {/* Neon green glow */}
       <div className="absolute top-1/2 right-12 -translate-y-1/2 w-28 h-28 rounded-full blur-3xl opacity-20" style={{ background: "hsl(152 60% 50%)" }} />
 
       {isHot && (
@@ -127,9 +138,7 @@ export default function PerformanceHeroRing({ metrics }: Props) {
         {/* Ring */}
         <div className="relative w-36 h-36 flex items-center justify-center flex-shrink-0 ml-4">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
-            {/* Background track */}
             <circle cx="80" cy="80" r={radius} fill="none" stroke="hsl(225 20% 14%)" strokeWidth="10" />
-            {/* Progress */}
             <motion.circle
               cx="80" cy="80" r={radius}
               fill="none"
@@ -156,4 +165,4 @@ export default function PerformanceHeroRing({ metrics }: Props) {
       </div>
     </motion.div>
   );
-}
+});

@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import homeHero from "@/assets/home-hero.jpg";
 import { Flame, ChevronRight, Dumbbell, Clock, Sparkles, Check, Loader2, Target } from "lucide-react";
@@ -15,7 +16,19 @@ import PerformanceActivityChart from "./PerformanceActivityChart";
 import TrainerCard from "./TrainerCard";
 import BodyFocusCarousel from "./BodyFocusCarousel";
 
-export default function HomeDashboard() {
+const getLocalDayIso = (date = new Date()) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+};
+
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
+};
+
+export default memo(function HomeDashboard() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { data: membership } = useMyMembership();
@@ -27,10 +40,10 @@ export default function HomeDashboard() {
   const heroImage = (gym?.settings as any)?.hero_image_url || homeHero;
   const personalTrainerId = (membership?.plans as any)?.personal_trainer_id;
 
-  // Fetch personal trainer profile if plan has one
   const { data: trainerProfile } = useQuery({
     queryKey: ["personal-trainer", personalTrainerId],
     enabled: !!personalTrainerId,
+    staleTime: 300_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -42,39 +55,28 @@ export default function HomeDashboard() {
     },
   });
 
-  const getLocalDayIso = (date = new Date()) => {
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 10);
-  };
-  const todayStr = getLocalDayIso();
+  const todayStr = useMemo(() => getLocalDayIso(), []);
 
-  // Prefer a workout that hasn't been done today; fallback to first
-  const todayWorkout = (() => {
-    if (!assignedWorkouts || assignedWorkouts.length === 0) return undefined;
+  const { todayWorkout, isTodayWorkoutDone } = useMemo(() => {
+    if (!assignedWorkouts || assignedWorkouts.length === 0) return { todayWorkout: undefined, isTodayWorkoutDone: false };
     const notDoneToday = assignedWorkouts.find(w =>
       !(sessions ?? []).some(s => s.status === "done" && s.date === todayStr && s.assigned_workout_id === w.id)
     );
-    return notDoneToday ?? assignedWorkouts[0];
-  })();
-
-  const isTodayWorkoutDone = todayWorkout
-    ? (sessions ?? []).some(s => s.status === "done" && s.date === todayStr && s.assigned_workout_id === todayWorkout.id)
-    : false;
+    const workout = notDoneToday ?? assignedWorkouts[0];
+    const done = workout
+      ? (sessions ?? []).some(s => s.status === "done" && s.date === todayStr && s.assigned_workout_id === workout.id)
+      : false;
+    return { todayWorkout: workout, isTodayWorkoutDone: done };
+  }, [assignedWorkouts, sessions, todayStr]);
 
   const firstName = profile?.name?.split(" ")[0] || "Aluno";
-
-  const getGreeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return "Bom dia";
-    if (h < 18) return "Boa tarde";
-    return "Boa noite";
-  };
+  const greeting = useMemo(() => getGreeting(), []);
 
   return (
     <div className="relative max-w-lg mx-auto space-y-5">
       {/* Hero background image */}
       <div className="absolute top-0 left-0 right-0 h-64 overflow-hidden">
-        <img src={heroImage} alt="" className="w-full h-full object-cover" />
+        <img src={heroImage} alt="" className="w-full h-full object-cover" loading="eager" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
       </div>
 
@@ -94,7 +96,7 @@ export default function HomeDashboard() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm text-muted-foreground">{getGreeting()},</p>
+            <p className="text-sm text-muted-foreground">{greeting},</p>
             <h1 className="text-lg font-bold text-foreground">{firstName} 👋</h1>
             {gym?.name && (
               <p className="text-[10px] text-muted-foreground/60">Bem-vindo à {gym.name}</p>
@@ -203,4 +205,4 @@ export default function HomeDashboard() {
       </div>
     </div>
   );
-}
+});

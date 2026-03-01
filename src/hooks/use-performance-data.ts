@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -67,7 +67,6 @@ const mapRowToMetrics = (row: any): DailyMetrics => ({
 
 const estimateLogCalories = (durationSeconds: number, caloriesEstimated: number | null) => {
   if (caloriesEstimated && caloriesEstimated > 0) return caloriesEstimated;
-  // fallback: 5.5 kcal/min (average between compound and isolation) with 30s minimum
   const effectiveDuration = Math.max(30, durationSeconds);
   return Math.max(5, Math.round((effectiveDuration / 60) * 5.5));
 };
@@ -176,90 +175,55 @@ export function useDailyMetrics() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const today = getLocalDayIso();
+  const rpcCalledRef = useRef(false);
 
-  // Realtime subscription na tabela cache
+  // OPTIMIZED: Single realtime channel instead of 3 separate ones
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel("daily-metrics-rt")
+      .channel("perf-metrics-combined")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "user_daily_metrics",
-          filter: `user_id=eq.${user.id}`,
-        },
+        { event: "*", schema: "public", table: "user_daily_metrics", filter: `user_id=eq.${user.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["daily-metrics", user.id] }); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "workout_sessions", filter: `member_id=eq.${user.id}` },
         () => {
+          rpcCalledRef.current = false; // allow re-calc on next fetch
+          setTimeout(() => { qc.invalidateQueries({ queryKey: ["daily-metrics", user.id] }); }, 300);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "workout_logs" },
+        () => {
+          rpcCalledRef.current = false;
           qc.invalidateQueries({ queryKey: ["daily-metrics", user.id] });
         }
       )
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, qc]);
-
-  // Sessão concluída/atualizada
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("sessions-metrics-rt")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "workout_sessions",
-          filter: `member_id=eq.${user.id}`,
-        },
-        () => {
-          setTimeout(() => {
-            qc.invalidateQueries({ queryKey: ["daily-metrics", user.id] });
-          }, 300);
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, qc]);
-
-  // Logs do treino inseridos/atualizados
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("workout-logs-metrics-rt")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "workout_logs",
-        },
-        () => {
-          qc.invalidateQueries({ queryKey: ["daily-metrics", user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id, qc]);
 
   return useQuery({
     queryKey: ["daily-metrics", user?.id, today],
     enabled: !!user,
+    staleTime: 15_000, // avoid refetch within 15s
+    gcTime: 60_000,
     queryFn: async (): Promise<DailyMetrics> => {
-      // tenta recalcular no backend (cache oficial)
-      try {
-        await supabase.rpc("calculate_daily_metrics", {
-          _user_id: user!.id,
-          _day: today,
-        });
-      } catch {
-        // segue com fallback em tempo real
+      // Only call RPC once per mount cycle to avoid hammering the DB
+      if (!rpcCalledRef.current) {
+        rpcCalledRef.current = true;
+        try {
+          await supabase.rpc("calculate_daily_metrics", {
+            _user_id: user!.id,
+            _day: today,
+          });
+        } catch {
+          // segue com fallback
+        }
       }
 
       let cachedRow: any = null;
@@ -287,7 +251,6 @@ export function useDailyMetrics() {
           ...(cached ?? {}),
           ...live,
           id: cached?.id ?? live.id,
-          // preserva métricas derivadas calculadas no backend quando já existirem
           streak_days: cached?.streak_days ?? live.streak_days,
           distance_km: cached?.distance_km ?? live.distance_km,
           steps: cached?.steps ?? live.steps,
@@ -317,7 +280,7 @@ export function useDailyMetrics() {
         };
       }
     },
-    refetchInterval: 30000,
+    refetchInterval: 60_000, // 60s instead of 30s
   });
 }
 
@@ -328,6 +291,8 @@ export function useHourlyActivity() {
   return useQuery({
     queryKey: ["hourly-activity", user?.id, today],
     enabled: !!user,
+    staleTime: 30_000, // 30s stale time
+    gcTime: 120_000,
     queryFn: async () => {
       const { data: sessions } = await supabase
         .from("workout_sessions")
@@ -361,4 +326,3 @@ export function useHourlyActivity() {
     },
   });
 }
-
