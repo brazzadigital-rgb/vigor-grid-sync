@@ -290,6 +290,39 @@ export function useGymDevices() {
   });
 }
 
+export function useGymExercises() {
+  const { profile } = useAuth();
+  return useQuery({
+    queryKey: ["gym-exercises", profile?.gym_id],
+    enabled: !!profile?.gym_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exercises")
+        .select("*")
+        .eq("gym_id", profile!.gym_id!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useGymSettings() {
+  const { profile } = useAuth();
+  return useQuery({
+    queryKey: ["gym-settings", profile?.gym_id],
+    enabled: !!profile?.gym_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gyms")
+        .select("*")
+        .eq("id", profile!.gym_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useGymStats() {
   const { profile } = useAuth();
   return useQuery({
