@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "./pages/auth/LoginPage";
 import StudentLayout from "./layouts/StudentLayout";
 import StudentHome from "./pages/student/StudentHome";
@@ -32,33 +34,35 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LoginPage />} />
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<LoginPage />} />
 
-          {/* Student App */}
-          <Route path="/app" element={<StudentLayout><StudentHome /></StudentLayout>} />
-          <Route path="/app/workouts" element={<StudentLayout><StudentWorkouts /></StudentLayout>} />
-          <Route path="/app/workouts/:id" element={<StudentLayout><WorkoutDetail /></StudentLayout>} />
-          <Route path="/app/workouts/:id/execute" element={<WorkoutExecution />} />
-          <Route path="/app/schedule" element={<StudentLayout><StudentSchedule /></StudentLayout>} />
-          <Route path="/app/search" element={<StudentLayout><StudentSearch /></StudentLayout>} />
-          <Route path="/app/profile" element={<StudentLayout><StudentProfile /></StudentLayout>} />
+            {/* Student App — protected */}
+            <Route path="/app" element={<ProtectedRoute><StudentLayout><StudentHome /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/workouts" element={<ProtectedRoute><StudentLayout><StudentWorkouts /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/workouts/:id" element={<ProtectedRoute><StudentLayout><WorkoutDetail /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/workouts/:id/execute" element={<ProtectedRoute><WorkoutExecution /></ProtectedRoute>} />
+            <Route path="/app/schedule" element={<ProtectedRoute><StudentLayout><StudentSchedule /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/search" element={<ProtectedRoute><StudentLayout><StudentSearch /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/profile" element={<ProtectedRoute><StudentLayout><StudentProfile /></StudentLayout></ProtectedRoute>} />
 
-          {/* Admin ERP */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="programs" element={<AdminPrograms />} />
-            <Route path="plans" element={<AdminPlans />} />
-            <Route path="payments" element={<AdminPayments />} />
-            <Route path="access" element={<AdminAccessControl />} />
-            <Route path="reports" element={<AdminReports />} />
-            <Route path="integrations" element={<AdminIntegrations />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
+            {/* Admin ERP — protected + staff */}
+            <Route path="/admin" element={<ProtectedRoute requireStaff><AdminLayout /></ProtectedRoute>}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="programs" element={<AdminPrograms />} />
+              <Route path="plans" element={<AdminPlans />} />
+              <Route path="payments" element={<AdminPayments />} />
+              <Route path="access" element={<AdminAccessControl />} />
+              <Route path="reports" element={<AdminReports />} />
+              <Route path="integrations" element={<AdminIntegrations />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
