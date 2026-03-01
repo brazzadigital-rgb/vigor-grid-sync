@@ -33,6 +33,8 @@ export default function WorkoutExecution() {
           id: item.id,
           exerciseId: item.exercise_id,
           name: item.exercises?.name ?? "Exercício",
+          category: item.exercises?.category ?? null,
+          muscleGroup: item.exercises?.muscle_group ?? null,
           sets: item.sets ?? 3,
           reps: item.reps ?? "12",
           rest: item.rest_seconds ?? 60,
@@ -41,6 +43,20 @@ export default function WorkoutExecution() {
           instructions: item.exercises?.instructions ?? null,
         }))
     );
+
+  // Realistic kcal/min rates by exercise category (based on ACSM / exercise physiology data)
+  // Accounts for work intervals + rest periods within sets
+  const getKcalPerMin = (category: string | null, muscleGroup: string | null) => {
+    const cat = (category ?? "").toLowerCase();
+    const mg = (muscleGroup ?? "").toLowerCase();
+    if (cat.includes("aerób") || cat.includes("cardio") || mg.includes("cardio")) return 10;
+    if (cat.includes("compound") || cat.includes("composto")) return 6.5;
+    if (cat.includes("isométr")) return 3.5;
+    // isolamento or unknown
+    if (cat.includes("isolamento") || cat.includes("isolation")) return 4.5;
+    // default for unknown category - moderate estimate
+    return 5;
+  };
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
@@ -91,16 +107,27 @@ export default function WorkoutExecution() {
       }).select("id").single();
       if (error) throw error;
 
-      // 2. Save workout_logs for each exercise with estimated calories & duration
+      // 2. Save workout_logs for each exercise with realistic calorie estimation
       if (session && exercises.length > 0) {
         const avgDurationPerExercise = Math.max(30, Math.round(elapsed / exercises.length));
         const logs = exercises.map((ex, exIdx) => {
           const durationSecs = avgDurationPerExercise;
-          // Estimate calories: at least 3 kcal per set performed, or ~8 kcal/min
-          const repsNum = parseInt(String(ex.reps)) || 12;
-          const calFromSets = ex.sets * repsNum * 0.4; // ~0.4 kcal per rep
-          const calFromDuration = Math.round((durationSecs / 60) * 8);
-          const calEst = Math.max(Math.round(calFromSets), calFromDuration, ex.sets * 3);
+          const durationMin = durationSecs / 60;
+          const kcalPerMin = getKcalPerMin(ex.category, ex.muscleGroup);
+
+          // Base calories from duration × category rate
+          let calEst = Math.round(durationMin * kcalPerMin);
+
+          // Weight intensity bonus: heavier loads = more energy expenditure
+          // ~0.5% bonus per kg for compound, ~0.3% for isolation
+          const loggedWeight = parseFloat(weightLog[exIdx]?.[1] || "0") || 0;
+          if (loggedWeight > 0) {
+            const bonusFactor = (ex.category ?? "").toLowerCase().includes("compound") ? 0.005 : 0.003;
+            calEst = Math.round(calEst * (1 + loggedWeight * bonusFactor));
+          }
+
+          // Minimum floor: at least 5 kcal per exercise
+          calEst = Math.max(5, calEst);
           return {
             session_id: session.id,
             exercise_id: ex.exerciseId || null,
@@ -202,7 +229,23 @@ export default function WorkoutExecution() {
     );
   }
 
-  const estimatedCalories = Math.round(elapsed * 0.12 * exercises.length * 0.4);
+  // Real-time calorie estimate based on elapsed time and exercise categories
+  const estimatedCalories = (() => {
+    if (exercises.length === 0) return 0;
+    const completedExercises = exercises.slice(0, currentIndex);
+    const avgTimePerEx = elapsed / Math.max(1, currentIndex + 1);
+    let total = 0;
+    // Completed exercises: full duration
+    completedExercises.forEach(ex => {
+      total += (avgTimePerEx / 60) * getKcalPerMin(ex.category, ex.muscleGroup);
+    });
+    // Current exercise: partial
+    if (exercise) {
+      const currentElapsed = elapsed - (currentIndex * avgTimePerEx);
+      total += (Math.max(0, currentElapsed) / 60) * getKcalPerMin(exercise.category, exercise.muscleGroup);
+    }
+    return Math.round(total);
+  })();
   const performanceScore = Math.min(100, Math.round((exercises.length / Math.max(1, exercises.length)) * 80 + Math.min(20, elapsed / 60)));
 
   if (finished) {
