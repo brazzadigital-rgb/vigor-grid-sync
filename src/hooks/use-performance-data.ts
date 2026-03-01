@@ -93,7 +93,7 @@ export function useDailyMetrics() {
     queryKey: ["daily-metrics", user?.id, today],
     enabled: !!user,
     queryFn: async (): Promise<DailyMetrics> => {
-      // Try to trigger calculation
+      // Tenta recalcular, mas sem bloquear a UI caso RPC falhe
       await supabase.rpc("calculate_daily_metrics", {
         _user_id: user!.id,
         _day: today,
@@ -106,7 +106,7 @@ export function useDailyMetrics() {
         .eq("day", today)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) return defaultMetrics;
       if (!data) return defaultMetrics;
 
       return {
