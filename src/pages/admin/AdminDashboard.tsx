@@ -1,40 +1,64 @@
-import { Users, DollarSign, TrendingUp, TrendingDown, Activity, ArrowUpRight, UserPlus } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from "recharts";
-
-const stats = [
-  { label: "Alunos Ativos", value: "487", change: "+12%", icon: Users, trend: "up" },
-  { label: "Receita Mensal", value: "R$ 48.700", change: "+8%", icon: DollarSign, trend: "up" },
-  { label: "Novos Cadastros", value: "32", change: "+5%", icon: UserPlus, trend: "up" },
-  { label: "Churn Rate", value: "3.2%", change: "-0.8%", icon: TrendingDown, trend: "down" },
-];
-
-const revenueData = [
-  { month: "Jul", value: 38200 }, { month: "Ago", value: 41500 }, { month: "Set", value: 39800 },
-  { month: "Out", value: 43200 }, { month: "Nov", value: 45600 }, { month: "Dez", value: 42800 },
-  { month: "Jan", value: 46100 }, { month: "Fev", value: 48700 },
-];
-
-const accessData = [
-  { day: "Seg", entries: 142 }, { day: "Ter", entries: 128 }, { day: "Qua", entries: 156 },
-  { day: "Qui", entries: 134 }, { day: "Sex", entries: 168 }, { day: "Sáb", entries: 95 }, { day: "Dom", entries: 42 },
-];
-
-const plansData = [
-  { name: "Hipertrofia", members: 145, color: "hsl(258, 82%, 60%)" },
-  { name: "Emagrecimento", members: 122, color: "hsl(152, 60%, 50%)" },
-  { name: "Performance", members: 89, color: "hsl(210, 90%, 60%)" },
-  { name: "Reabilitação", members: 67, color: "hsl(38, 92%, 60%)" },
-  { name: "Outro", members: 64, color: "hsl(225, 15%, 55%)" },
-];
-
-const recentMembers = [
-  { name: "Maria Oliveira", plan: "Hipertrofia", date: "Hoje", status: "active" },
-  { name: "Pedro Santos", plan: "Emagrecimento", date: "Ontem", status: "active" },
-  { name: "Ana Costa", plan: "Performance", date: "2 dias", status: "pending" },
-  { name: "Lucas Ferreira", plan: "Hipertrofia", date: "3 dias", status: "active" },
-];
+import { Users, DollarSign, TrendingDown, ArrowUpRight, UserPlus, Loader2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { useGymStats, useGymMemberships, useGymPayments, useGymAccessLogs } from "@/hooks/use-supabase-data";
 
 export default function AdminDashboard() {
+  const { data: gymStats, isLoading } = useGymStats();
+  const { data: memberships } = useGymMemberships();
+  const { data: payments } = useGymPayments();
+  const { data: accessLogs } = useGymAccessLogs();
+
+  // Compute revenue chart from payments
+  const revenueByMonth: Record<string, number> = {};
+  (payments ?? []).filter(p => p.status === "paid").forEach(p => {
+    const month = p.created_at?.slice(0, 7) ?? "";
+    revenueByMonth[month] = (revenueByMonth[month] ?? 0) + (p.amount_cents ?? 0);
+  });
+  const revenueData = Object.entries(revenueByMonth)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-8)
+    .map(([month, value]) => ({
+      month: new Date(month + "-01").toLocaleDateString("pt-BR", { month: "short" }),
+      value: value / 100,
+    }));
+
+  // Access logs by weekday
+  const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const accessByDay = weekdays.map(day => ({ day, entries: 0 }));
+  (accessLogs ?? []).forEach(log => {
+    const d = new Date(log.event_time).getDay();
+    if (log.decision === "allow") accessByDay[d].entries++;
+  });
+
+  // Plans breakdown
+  const planCounts: Record<string, number> = {};
+  (memberships ?? []).forEach(m => {
+    const name = (m as any).plans?.name ?? "Outro";
+    planCounts[name] = (planCounts[name] ?? 0) + 1;
+  });
+  const maxPlan = Math.max(...Object.values(planCounts), 1);
+  const planColors = ["hsl(258, 82%, 60%)", "hsl(152, 60%, 50%)", "hsl(210, 90%, 60%)", "hsl(38, 92%, 60%)", "hsl(225, 15%, 55%)"];
+
+  // Recent members
+  const recentMembers = (memberships ?? [])
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
+    .slice(0, 5);
+
+  const stats = [
+    { label: "Alunos Ativos", value: String(gymStats?.activeMembers ?? 0), icon: Users },
+    { label: "Receita Mensal", value: `R$ ${((gymStats?.revenue ?? 0) / 100).toLocaleString("pt-BR")}`, icon: DollarSign },
+    { label: "Novos Cadastros", value: String(gymStats?.newThisMonth ?? 0), icon: UserPlus },
+    { label: "Total Membros", value: String(gymStats?.totalMemberships ?? 0), icon: TrendingDown },
+  ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Stats Grid */}
@@ -45,10 +69,6 @@ export default function AdminDashboard() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <stat.icon className="w-5 h-5 text-primary" />
               </div>
-              <span className={`flex items-center gap-1 text-xs font-medium ${stat.trend === "up" ? "text-success" : "text-destructive"}`}>
-                {stat.change}
-                <ArrowUpRight className={`w-3 h-3 ${stat.trend === "down" ? "rotate-90" : ""}`} />
-              </span>
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{stat.value}</p>
@@ -64,27 +84,31 @@ export default function AdminDashboard() {
         <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-foreground">Receita</h3>
-            <span className="text-xs text-muted-foreground">Últimos 8 meses</span>
+            <span className="text-xs text-muted-foreground">Últimos meses</span>
           </div>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(258, 82%, 60%)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="hsl(258, 82%, 60%)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 20%, 16%)" />
-                <XAxis dataKey="month" stroke="hsl(225, 15%, 55%)" fontSize={12} />
-                <YAxis stroke="hsl(225, 15%, 55%)" fontSize={12} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "hsl(225, 25%, 9%)", border: "1px solid hsl(225, 20%, 16%)", borderRadius: "12px", color: "hsl(220, 20%, 95%)" }}
-                  formatter={(value: number) => [`R$ ${value.toLocaleString()}`, "Receita"]}
-                />
-                <Area type="monotone" dataKey="value" stroke="hsl(258, 82%, 60%)" fill="url(#colorRevenue)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {revenueData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueData}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(258, 82%, 60%)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(258, 82%, 60%)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 20%, 16%)" />
+                  <XAxis dataKey="month" stroke="hsl(225, 15%, 55%)" fontSize={12} />
+                  <YAxis stroke="hsl(225, 15%, 55%)" fontSize={12} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "hsl(225, 25%, 9%)", border: "1px solid hsl(225, 20%, 16%)", borderRadius: "12px", color: "hsl(220, 20%, 95%)" }}
+                    formatter={(value: number) => [`R$ ${value.toLocaleString()}`, "Receita"]}
+                  />
+                  <Area type="monotone" dataKey="value" stroke="hsl(258, 82%, 60%)" fill="url(#colorRevenue)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">Sem dados de receita</div>
+            )}
           </div>
         </div>
 
@@ -92,11 +116,11 @@ export default function AdminDashboard() {
         <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-foreground">Acessos na Catraca</h3>
-            <span className="text-xs text-muted-foreground">Esta semana</span>
+            <span className="text-xs text-muted-foreground">Hoje</span>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={accessData}>
+              <BarChart data={accessByDay}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 20%, 16%)" />
                 <XAxis dataKey="day" stroke="hsl(225, 15%, 55%)" fontSize={12} />
                 <YAxis stroke="hsl(225, 15%, 55%)" fontSize={12} />
@@ -116,44 +140,51 @@ export default function AdminDashboard() {
         <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
           <h3 className="text-base font-semibold text-foreground">Alunos por Plano</h3>
           <div className="space-y-3">
-            {plansData.map((plan) => (
-              <div key={plan.name} className="space-y-1.5">
+            {Object.entries(planCounts).map(([name, count], i) => (
+              <div key={name} className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">{plan.name}</span>
-                  <span className="text-muted-foreground">{plan.members}</span>
+                  <span className="text-foreground">{name}</span>
+                  <span className="text-muted-foreground">{count}</span>
                 </div>
                 <div className="h-2 rounded-full bg-secondary overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${(plan.members / 145) * 100}%`, backgroundColor: plan.color }}
+                    style={{ width: `${(count / maxPlan) * 100}%`, backgroundColor: planColors[i % planColors.length] }}
                   />
                 </div>
               </div>
             ))}
+            {Object.keys(planCounts).length === 0 && (
+              <p className="text-sm text-muted-foreground">Sem dados</p>
+            )}
           </div>
         </div>
 
         {/* Recent Members */}
         <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-          <h3 className="text-base font-semibold text-foreground">Novos Alunos</h3>
+          <h3 className="text-base font-semibold text-foreground">Membros Recentes</h3>
           <div className="space-y-3">
-            {recentMembers.map((member) => (
-              <div key={member.name} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                  {member.name.split(" ").map(n => n[0]).join("")}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{member.name}</p>
-                  <p className="text-xs text-muted-foreground">{member.plan}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${member.status === "active" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+            {recentMembers.map((member: any) => {
+              const name = member.profiles?.name ?? "—";
+              const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2);
+              return (
+                <div key={member.id} className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                    <p className="text-xs text-muted-foreground">{member.plans?.name ?? "—"}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    member.status === "active" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"
+                  }`}>
                     {member.status === "active" ? "Ativo" : "Pendente"}
                   </span>
-                  <p className="text-xs text-muted-foreground mt-0.5">{member.date}</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+            {recentMembers.length === 0 && <p className="text-sm text-muted-foreground">Sem membros</p>}
           </div>
         </div>
       </div>

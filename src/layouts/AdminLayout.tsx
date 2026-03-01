@@ -1,10 +1,11 @@
-import { NavLink, useLocation, Outlet } from "react-router-dom";
+import { NavLink, useLocation, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Dumbbell, CreditCard, Shield,
-  BarChart3, Settings, Zap, ChevronLeft, Menu, DollarSign
+  BarChart3, Settings, Zap, ChevronLeft, Menu, DollarSign, LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const sidebarItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -21,6 +22,13 @@ const sidebarItems = [
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut, profile } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -65,6 +73,16 @@ export default function AdminLayout() {
             );
           })}
         </nav>
+
+        <div className="p-2 border-t border-border">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-all w-full"
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            {!collapsed && <span>Sair</span>}
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}

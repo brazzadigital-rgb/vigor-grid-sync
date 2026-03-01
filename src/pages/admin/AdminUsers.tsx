@@ -1,46 +1,46 @@
 import { useState } from "react";
-import { Search, Plus, MoreHorizontal, Filter, Download } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const members = [
-  { id: 1, name: "João Silva", email: "joao@email.com", plan: "Hipertrofia", status: "active", phone: "(11) 99999-0001", joined: "12/01/2024" },
-  { id: 2, name: "Maria Oliveira", email: "maria@email.com", plan: "Emagrecimento", status: "active", phone: "(11) 99999-0002", joined: "15/01/2024" },
-  { id: 3, name: "Pedro Santos", email: "pedro@email.com", plan: "Performance", status: "active", phone: "(11) 99999-0003", joined: "20/01/2024" },
-  { id: 4, name: "Ana Costa", email: "ana@email.com", plan: "Reabilitação", status: "pending", phone: "(11) 99999-0004", joined: "25/01/2024" },
-  { id: 5, name: "Lucas Ferreira", email: "lucas@email.com", plan: "Hipertrofia", status: "inactive", phone: "(11) 99999-0005", joined: "01/02/2024" },
-  { id: 6, name: "Camila Lima", email: "camila@email.com", plan: "Emagrecimento", status: "active", phone: "(11) 99999-0006", joined: "05/02/2024" },
-  { id: 7, name: "Rafael Souza", email: "rafael@email.com", plan: "Performance", status: "active", phone: "(11) 99999-0007", joined: "10/02/2024" },
-  { id: 8, name: "Juliana Alves", email: "juliana@email.com", plan: "Hipertrofia", status: "overdue", phone: "(11) 99999-0008", joined: "15/02/2024" },
-];
+import { useGymMemberships } from "@/hooks/use-supabase-data";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   active: { label: "Ativo", className: "bg-success/15 text-success" },
-  pending: { label: "Pendente", className: "bg-warning/15 text-warning" },
-  inactive: { label: "Inativo", className: "bg-muted text-muted-foreground" },
-  overdue: { label: "Inadimplente", className: "bg-destructive/15 text-destructive" },
+  paused: { label: "Pausado", className: "bg-warning/15 text-warning" },
+  cancelled: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
+  expired: { label: "Expirado", className: "bg-destructive/15 text-destructive" },
 };
 
-const filters = ["Todos", "Ativos", "Pendentes", "Inadimplentes"];
+const filters = ["Todos", "Ativos", "Pausados", "Expirados"];
 
 export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
+  const { data: memberships, isLoading } = useGymMemberships();
 
-  const filtered = members.filter((m) => {
-    const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase());
+  const filtered = (memberships ?? []).filter((m: any) => {
+    const name = m.profiles?.name ?? "";
+    const email = m.profiles?.email ?? "";
+    const matchSearch = name.toLowerCase().includes(search.toLowerCase()) || email.toLowerCase().includes(search.toLowerCase());
     if (activeFilter === "Ativos") return matchSearch && m.status === "active";
-    if (activeFilter === "Pendentes") return matchSearch && m.status === "pending";
-    if (activeFilter === "Inadimplentes") return matchSearch && m.status === "overdue";
+    if (activeFilter === "Pausados") return matchSearch && m.status === "paused";
+    if (activeFilter === "Expirados") return matchSearch && (m.status === "expired" || m.status === "cancelled");
     return matchSearch;
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-foreground">Gestão de Alunos</h2>
-          <p className="text-sm text-muted-foreground">{members.length} alunos cadastrados</p>
+          <p className="text-sm text-muted-foreground">{memberships?.length ?? 0} alunos cadastrados</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm"><Download className="w-4 h-4" /> Exportar</Button>
@@ -48,7 +48,6 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -69,7 +68,6 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -84,27 +82,32 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((member) => {
-                const config = statusConfig[member.status];
+              {filtered.map((member: any) => {
+                const config = statusConfig[member.status] ?? statusConfig.active;
+                const name = member.profiles?.name ?? "—";
+                const email = member.profiles?.email ?? "";
+                const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2);
                 return (
                   <tr key={member.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors cursor-pointer">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                          {member.name.split(" ").map(n => n[0]).join("")}
+                          {initials}
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{member.name}</p>
-                          <p className="text-xs text-muted-foreground">{member.email}</p>
+                          <p className="font-medium text-foreground">{name}</p>
+                          <p className="text-xs text-muted-foreground">{email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-foreground">{member.plan}</td>
+                    <td className="py-3 px-4 text-foreground">{member.plans?.name ?? "—"}</td>
                     <td className="py-3 px-4">
                       <span className={`text-xs px-2 py-1 rounded-full ${config.className}`}>{config.label}</span>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{member.phone}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{member.joined}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{member.profiles?.phone ?? "—"}</td>
+                    <td className="py-3 px-4 text-muted-foreground">
+                      {member.created_at ? new Date(member.created_at).toLocaleDateString("pt-BR") : "—"}
+                    </td>
                     <td className="py-3 px-4">
                       <button className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground">
                         <MoreHorizontal className="w-4 h-4" />
@@ -113,6 +116,9 @@ export default function AdminUsers() {
                   </tr>
                 );
               })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">Nenhum aluno encontrado</td></tr>
+              )}
             </tbody>
           </table>
         </div>
