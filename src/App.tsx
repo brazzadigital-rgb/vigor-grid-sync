@@ -2,23 +2,27 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import LoginPage from "./pages/auth/LoginPage";
+
+// Auth
 import OnboardingPage from "./pages/auth/OnboardingPage";
-import StudentLayout from "./layouts/StudentLayout";
-import StudentHome from "./pages/student/StudentHome";
-import StudentWorkouts from "./pages/student/StudentWorkouts";
-import WorkoutDetail from "./pages/student/WorkoutDetail";
-import WorkoutExecution from "./pages/student/WorkoutExecution";
-import StudentSchedule from "./pages/student/StudentSchedule";
-import StudentSearch from "./pages/student/StudentSearch";
-import StudentProfile from "./pages/student/StudentProfile";
-import StudentProgress from "./pages/student/StudentProgress";
-import StudentPayments from "./pages/student/StudentPayments";
-import StudentCredential from "./pages/student/StudentCredential";
-import StudentSettings from "./pages/student/StudentSettings";
+import OnboardingStepsPage from "./pages/auth/OnboardingStepsPage";
+import SignUpPage from "./pages/auth/SignUpPage";
+import LoginPage from "./pages/auth/LoginPage";
+
+// App Layout + Pages
+import AppLayout from "./layouts/AppLayout";
+import HomePage from "./pages/app/HomePage";
+import ExercisesPage from "./pages/app/ExercisesPage";
+import RoutinePage from "./pages/app/RoutinePage";
+import GoalsPage from "./pages/app/GoalsPage";
+import AICoachPage from "./pages/app/AICoachPage";
+import ProfilePage from "./pages/app/ProfilePage";
+import SettingsPage from "./pages/app/SettingsPage";
+
+// Admin
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -30,6 +34,7 @@ import AdminAccessControl from "./pages/admin/AdminAccessControl";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import AdminSettings from "./pages/admin/AdminSettings";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,21 +47,32 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            {/* Onboarding & Auth */}
             <Route path="/" element={<OnboardingPage />} />
+            <Route path="/onboarding" element={<OnboardingStepsPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Student App — protected */}
-            <Route path="/app" element={<ProtectedRoute><StudentLayout><StudentHome /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/workouts" element={<ProtectedRoute><StudentLayout><StudentWorkouts /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/workouts/:id" element={<ProtectedRoute><StudentLayout><WorkoutDetail /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/workouts/:id/execute" element={<ProtectedRoute><WorkoutExecution /></ProtectedRoute>} />
-            <Route path="/app/schedule" element={<ProtectedRoute><StudentLayout><StudentSchedule /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/search" element={<ProtectedRoute><StudentLayout><StudentSearch /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/profile" element={<ProtectedRoute><StudentLayout><StudentProfile /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/profile/progress" element={<ProtectedRoute><StudentLayout><StudentProgress /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/profile/payments" element={<ProtectedRoute><StudentLayout><StudentPayments /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/profile/credential" element={<ProtectedRoute><StudentLayout><StudentCredential /></StudentLayout></ProtectedRoute>} />
-            <Route path="/app/profile/settings" element={<ProtectedRoute><StudentLayout><StudentSettings /></StudentLayout></ProtectedRoute>} />
+            {/* Main App — protected */}
+            <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route index element={<HomePage />} />
+              <Route path="exercises" element={<ExercisesPage />} />
+              <Route path="routine" element={<RoutinePage />} />
+              <Route path="goals" element={<GoalsPage />} />
+              <Route path="ai-coach" element={<AICoachPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="profile/settings" element={<SettingsPage />} />
+              {/* Placeholder routes for sub-pages */}
+              <Route path="profile/edit" element={<ProfilePage />} />
+              <Route path="profile/measurements" element={<ProfilePage />} />
+              <Route path="profile/badges" element={<ProfilePage />} />
+              <Route path="notifications" element={<HomePage />} />
+              <Route path="goals/new" element={<GoalsPage />} />
+              <Route path="ai-coach/chat" element={<AICoachPage />} />
+              <Route path="ai-coach/dashboard" element={<AICoachPage />} />
+              <Route path="ai-coach/feedback" element={<AICoachPage />} />
+              <Route path="exercises/timer" element={<ExercisesPage />} />
+            </Route>
 
             {/* Admin ERP — protected + staff */}
             <Route path="/admin" element={<ProtectedRoute requireStaff><AdminLayout /></ProtectedRoute>}>
