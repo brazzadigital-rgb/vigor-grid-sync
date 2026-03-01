@@ -1,5 +1,5 @@
 import { 
-  User, Bell, Crown, MessageCircle, Ruler, Target, Plus, Trophy, Settings, LogOut, ChevronRight, Edit
+  User, Bell, Crown, MessageCircle, Ruler, Target, Plus, Trophy, Settings, LogOut, ChevronRight, Edit, QrCode
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ const menuItems = [
   { icon: Target, label: "Meus Objetivos", description: "Acompanhe suas metas", to: "/app/goals" },
   { icon: Plus, label: "Adicionar Meta", description: "Criar novo objetivo", to: "/app/goals/new" },
   { icon: Trophy, label: "Minhas Conquistas", description: "Badges e troféus", to: "/app/profile/badges" },
+  { icon: QrCode, label: "Credencial de Acesso", description: "QR Code e catraca", to: "/app/credential" },
 ];
 
 export default function StudentProfile() {
