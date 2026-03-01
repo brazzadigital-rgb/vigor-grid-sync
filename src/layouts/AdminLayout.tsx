@@ -1,7 +1,7 @@
 import { NavLink, useLocation, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Dumbbell, CreditCard, Shield,
-  BarChart3, Settings, Zap, ChevronLeft, Menu, DollarSign, LogOut
+  BarChart3, Settings, Zap, ChevronLeft, Menu, DollarSign, LogOut, ShoppingBag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -15,6 +15,7 @@ const sidebarItems = [
   { to: "/admin/programs", icon: Dumbbell, label: "Programas" },
   { to: "/admin/plans", icon: DollarSign, label: "Planos" },
   { to: "/admin/payments", icon: CreditCard, label: "Pagamentos" },
+  { to: "/admin/store", icon: ShoppingBag, label: "Loja" },
   { to: "/admin/access", icon: Shield, label: "Controle Acesso" },
   { to: "/admin/reports", icon: BarChart3, label: "Relatórios" },
   { to: "/admin/integrations", icon: Zap, label: "Integrações" },
