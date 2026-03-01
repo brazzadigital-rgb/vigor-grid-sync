@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dumbbell, ChevronRight, Clock, Zap, CheckCircle2, Loader2 } from "lucide-react";
+import { Dumbbell, ChevronRight, CheckCircle2, Loader2, Sparkles, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyAssignedWorkouts, useMyWorkoutSessions } from "@/hooks/use-supabase-data";
 
@@ -10,8 +10,11 @@ export default function StudentWorkouts() {
   const { data: assigned, isLoading } = useMyAssignedWorkouts();
   const { data: sessions } = useMyWorkoutSessions();
 
-  const filters = ["all", "active", "done"];
-  const filterLabels: Record<string, string> = { all: "Todos", active: "Ativos", done: "Concluídos" };
+  const filters = [
+    { key: "all", label: "Todos" },
+    { key: "active", label: "Ativos" },
+    { key: "done", label: "Concluídos" },
+  ];
 
   const filteredWorkouts = (assigned ?? []).filter(w => {
     if (filter === "active") return w.status === "active";
@@ -19,7 +22,6 @@ export default function StudentWorkouts() {
     return true;
   });
 
-  // Check if a workout has completed sessions
   const getWorkoutStatus = (assignedId: string) => {
     const s = sessions?.filter(s => s.assigned_workout_id === assignedId);
     const done = s?.some(s => s.status === "done");
@@ -28,34 +30,42 @@ export default function StudentWorkouts() {
 
   if (isLoading) {
     return (
-      <div className="px-5 pt-14 pb-6 max-w-lg mx-auto flex items-center justify-center min-h-[50vh]">
+      <div className="px-5 pt-12 pb-6 max-w-lg mx-auto flex items-center justify-center min-h-[50vh]">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="px-5 pt-14 pb-6 max-w-lg mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Meus Treinos</h1>
+    <div className="px-5 pt-12 pb-6 max-w-lg mx-auto space-y-5">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold text-foreground">Meus Treinos</h1>
+        <p className="text-sm text-muted-foreground">Seus programas de treino atribuídos</p>
+      </div>
 
       {/* Filters */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide">
         {filters.map((f) => (
           <Button
-            key={f}
-            variant={filter === f ? "pill-active" : "pill"}
+            key={f.key}
+            variant={filter === f.key ? "pill-active" : "pill"}
             size="pill"
-            onClick={() => setFilter(f)}
+            onClick={() => setFilter(f.key)}
           >
-            {filterLabels[f]}
+            {f.label}
           </Button>
         ))}
       </div>
 
+      {/* Count */}
+      <p className="text-xs text-muted-foreground">{filteredWorkouts.length} programa{filteredWorkouts.length !== 1 ? "s" : ""}</p>
+
       {/* Workout List */}
       {filteredWorkouts.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-2">
-          <Dumbbell className="w-8 h-8 text-muted-foreground mx-auto" />
+        <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-3">
+          <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center mx-auto">
+            <Dumbbell className="w-7 h-7 text-muted-foreground" />
+          </div>
           <p className="text-sm text-muted-foreground">Nenhum treino encontrado</p>
         </div>
       ) : (
@@ -66,10 +76,16 @@ export default function StudentWorkouts() {
             return (
               <div
                 key={workout.id}
-                className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 cursor-pointer hover:border-primary/30 transition-all"
+                className={`flex items-center gap-4 rounded-2xl border p-4 cursor-pointer transition-all ${
+                  isDone 
+                    ? "border-success/20 bg-card hover:border-success/30" 
+                    : "border-border bg-card hover:border-primary/30"
+                }`}
                 onClick={() => navigate(`/app/workouts/${workout.id}`)}
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  isDone ? "bg-success/10" : "bg-primary/10"
+                }`}>
                   {isDone ? (
                     <CheckCircle2 className="w-5 h-5 text-success" />
                   ) : (
@@ -77,17 +93,21 @@ export default function StudentWorkouts() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{workout.workout_templates?.name}</p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                    <span>{workout.workout_templates?.level ?? "—"}</span>
-                    <span>{workout.workout_templates?.weeks ?? 0} semanas</span>
+                  <p className="text-sm font-semibold text-foreground truncate">{workout.workout_templates?.name}</p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> {workout.workout_templates?.level ?? "—"}
+                    </span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {workout.workout_templates?.weeks ?? 0} sem
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-xs px-2 py-1 rounded-full border ${
+                  <span className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${
                     isDone
-                      ? "bg-success/15 text-success border-success/20"
-                      : "bg-primary/15 text-primary border-primary/20"
+                      ? "bg-success/10 text-success border-success/20"
+                      : "bg-primary/10 text-primary border-primary/20"
                   }`}>
                     {isDone ? "Concluído" : "Ativo"}
                   </span>
