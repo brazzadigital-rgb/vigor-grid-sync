@@ -10,12 +10,12 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children, requireStaff }: Props) {
-  const { session, user, loading, isStaff } = useAuth();
+  const { session, user, loading, isStaff, roles, profile } = useAuth();
   const location = useLocation();
 
   const { data: onboardingData, isLoading: onboardingLoading } = useQuery({
     queryKey: ["onboarding-check", user?.id],
-    enabled: !!user && !isStaff,
+    enabled: !!user && !!profile && !isStaff,
     queryFn: async () => {
       const { data } = await supabase
         .from("onboarding_data")
@@ -26,7 +26,11 @@ export default function ProtectedRoute({ children, requireStaff }: Props) {
     },
   });
 
-  if (loading || (!!user && !isStaff && onboardingLoading)) {
+  // Wait until auth AND profile/roles are fully loaded
+  const profileLoading = !!user && !profile;
+  const rolesLoading = !!user && roles.length === 0 && !profile;
+
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -37,9 +41,18 @@ export default function ProtectedRoute({ children, requireStaff }: Props) {
   if (!session) return <Navigate to="/" replace />;
   if (requireStaff && !isStaff) return <Navigate to="/app" replace />;
 
-  // Redirect non-staff users to onboarding if not completed
-  if (!isStaff && location.pathname !== "/onboarding" && (!onboardingData || !onboardingData.completed)) {
-    return <Navigate to="/onboarding" replace />;
+  // Only check onboarding for non-staff users when profile is loaded
+  if (!isStaff && !!profile) {
+    if (onboardingLoading) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      );
+    }
+    if (location.pathname !== "/onboarding" && (!onboardingData || !onboardingData.completed)) {
+      return <Navigate to="/onboarding" replace />;
+    }
   }
 
   return <>{children}</>;

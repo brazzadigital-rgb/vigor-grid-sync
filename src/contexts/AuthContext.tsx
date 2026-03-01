@@ -36,11 +36,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfileAndRoles(session.user.id).finally(() => setLoading(false));
+        // Use setTimeout to avoid blocking the auth state change callback
+        setTimeout(() => {
+          fetchProfileAndRoles(session.user.id).finally(() => setLoading(false));
+        }, 0);
       } else {
         setProfile(null);
         setRoles([]);
@@ -48,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // THEN check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
