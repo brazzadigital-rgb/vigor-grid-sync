@@ -67,8 +67,9 @@ const mapRowToMetrics = (row: any): DailyMetrics => ({
 
 const estimateLogCalories = (durationSeconds: number, caloriesEstimated: number | null) => {
   if (caloriesEstimated && caloriesEstimated > 0) return caloriesEstimated;
-  // fallback: 8 kcal/min quando o log não traz calorias
-  return Math.round((durationSeconds / 60) * 8);
+  // fallback: 8 kcal/min com mínimo de 30s de duração e 9 kcal por exercício
+  const effectiveDuration = Math.max(30, durationSeconds);
+  return Math.max(9, Math.round((effectiveDuration / 60) * 8));
 };
 
 async function getDailyMetricsFromLogs(
