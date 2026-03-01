@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -170,11 +172,41 @@ export default function OnboardingStepsPage() {
     return !!val;
   };
 
+  const saveOnboardingToSupabase = async (data: Record<string, any>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return; // Will save after signup if not logged in yet
+
+    const payload = {
+      user_id: user.id,
+      gender: data.gender || null,
+      age: data.age || null,
+      height: data.height || null,
+      weight: data.weight || null,
+      activity_level: data.activity_level || null,
+      fitness_goal: data.fitness_goal || null,
+      experience_level: data.experience_level || null,
+      equipment: data.equipment || [],
+      workout_duration: data.workout_duration || null,
+      workout_location: data.workout_location || null,
+      preferred_time: data.preferred_time || null,
+      injuries: data.injuries || [],
+      reminders: data.reminders || null,
+      completed: true,
+    };
+
+    const { error } = await supabase.from("onboarding_data").upsert(payload, { onConflict: "user_id" });
+    if (error) {
+      console.error("Error saving onboarding:", error);
+      toast.error("Erro ao salvar dados do onboarding");
+    }
+  };
+
   const goNext = () => {
     if (!canProceed()) return;
     setAnimating(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       if (step === STEPS.length - 1) {
+        await saveOnboardingToSupabase(answers);
         localStorage.setItem("onboarding_steps_done", "true");
         localStorage.removeItem("onboarding_progress");
         navigate("/signup");
