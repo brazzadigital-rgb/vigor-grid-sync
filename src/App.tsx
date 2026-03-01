@@ -24,6 +24,7 @@ import StudentSettings from "./pages/student/StudentSettings";
 import StudentGoals from "./pages/student/StudentGoals";
 import StudentBadges from "./pages/student/StudentBadges";
 import StudentPlan from "./pages/student/StudentPlan";
+import StudentStore from "./pages/student/StudentStore";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/app/profile/settings" element={<ProtectedRoute><StudentLayout><StudentSettings /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/badges" element={<ProtectedRoute><StudentLayout><StudentBadges /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/plan" element={<ProtectedRoute><StudentLayout><StudentPlan /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/store" element={<ProtectedRoute><StudentLayout><StudentStore /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/goals" element={<ProtectedRoute><StudentLayout><StudentGoals /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/goals/new" element={<ProtectedRoute><StudentLayout><StudentGoals /></StudentLayout></ProtectedRoute>} />
 
