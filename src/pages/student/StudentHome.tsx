@@ -168,7 +168,10 @@ export default function StudentHome() {
         {upcomingSessions.length > 0 ? (
           <div className="space-y-2">
             {upcomingSessions.map((session) => (
-              <div key={session.id} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 hover:border-primary/20 transition-colors">
+              <div key={session.id}
+                onClick={() => session.assigned_workout_id && navigate(`/app/workouts/${session.assigned_workout_id}`)}
+                className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 hover:border-primary/20 transition-colors cursor-pointer"
+              >
                 <div className="w-12 h-12 rounded-xl bg-secondary flex flex-col items-center justify-center shrink-0">
                   <Calendar className="w-3.5 h-3.5 text-primary mb-0.5" />
                   <span className="text-[10px] font-semibold text-foreground">{new Date(session.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>
