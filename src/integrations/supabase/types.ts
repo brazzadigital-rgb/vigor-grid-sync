@@ -749,6 +749,279 @@ export type Database = {
           },
         ]
       }
+      store_cart_items: {
+        Row: {
+          created_at: string
+          gym_id: string
+          id: string
+          member_id: string
+          product_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gym_id: string
+          id?: string
+          member_id: string
+          product_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gym_id?: string
+          id?: string
+          member_id?: string
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_cart_items_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_cart_items_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_categories: {
+        Row: {
+          banner_image_url: string | null
+          created_at: string
+          description: string | null
+          gym_id: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          banner_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          gym_id: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          banner_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          gym_id?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_categories_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_order_items: {
+        Row: {
+          id: string
+          name_snapshot: string
+          order_id: string
+          price_cents_snapshot: number
+          product_id: string | null
+          quantity: number
+        }
+        Insert: {
+          id?: string
+          name_snapshot: string
+          order_id: string
+          price_cents_snapshot?: number
+          product_id?: string | null
+          quantity?: number
+        }
+        Update: {
+          id?: string
+          name_snapshot?: string
+          order_id?: string
+          price_cents_snapshot?: number
+          product_id?: string | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_orders: {
+        Row: {
+          created_at: string
+          gym_id: string
+          id: string
+          member_id: string
+          payment_provider: string | null
+          payment_reference: string | null
+          status: string
+          total_cents: number
+        }
+        Insert: {
+          created_at?: string
+          gym_id: string
+          id?: string
+          member_id: string
+          payment_provider?: string | null
+          payment_reference?: string | null
+          status?: string
+          total_cents?: number
+        }
+        Update: {
+          created_at?: string
+          gym_id?: string
+          id?: string
+          member_id?: string
+          payment_provider?: string | null
+          payment_reference?: string | null
+          status?: string
+          total_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_orders_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_orders_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_products: {
+        Row: {
+          benefits: Json | null
+          category_id: string | null
+          compare_at_price_cents: number | null
+          created_at: string
+          description: string | null
+          gym_id: string
+          id: string
+          images: Json | null
+          ingredients_or_materials: Json | null
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          price_cents: number
+          short_description: string | null
+          sku: string | null
+          slug: string
+          stock_quantity: number
+          tags: string[] | null
+          updated_at: string
+          usage_instructions: string | null
+        }
+        Insert: {
+          benefits?: Json | null
+          category_id?: string | null
+          compare_at_price_cents?: number | null
+          created_at?: string
+          description?: string | null
+          gym_id: string
+          id?: string
+          images?: Json | null
+          ingredients_or_materials?: Json | null
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          price_cents?: number
+          short_description?: string | null
+          sku?: string | null
+          slug: string
+          stock_quantity?: number
+          tags?: string[] | null
+          updated_at?: string
+          usage_instructions?: string | null
+        }
+        Update: {
+          benefits?: Json | null
+          category_id?: string | null
+          compare_at_price_cents?: number | null
+          created_at?: string
+          description?: string | null
+          gym_id?: string
+          id?: string
+          images?: Json | null
+          ingredients_or_materials?: Json | null
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          price_cents?: number
+          short_description?: string | null
+          sku?: string | null
+          slug?: string
+          stock_quantity?: number
+          tags?: string[] | null
+          updated_at?: string
+          usage_instructions?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "store_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_products_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
