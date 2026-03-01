@@ -45,6 +45,7 @@ import AdminStoreCategories from "./pages/admin/AdminStoreCategories";
 import AdminStoreProducts from "./pages/admin/AdminStoreProducts";
 import AdminStoreProductForm from "./pages/admin/AdminStoreProductForm";
 import AdminStoreOrders from "./pages/admin/AdminStoreOrders";
+import ProgressTodayPage from "./pages/student/ProgressTodayPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,7 @@ const App = () => (
             <Route path="/app/profile/settings" element={<ProtectedRoute><StudentLayout><StudentSettings /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/badges" element={<ProtectedRoute><StudentLayout><StudentBadges /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/plan" element={<ProtectedRoute><StudentLayout><StudentPlan /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/progress/today" element={<ProtectedRoute><ProgressTodayPage /></ProtectedRoute>} />
             <Route path="/app/goals" element={<ProtectedRoute><StudentLayout><StudentGoals /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/goals/new" element={<ProtectedRoute><StudentLayout><StudentGoals /></StudentLayout></ProtectedRoute>} />
 

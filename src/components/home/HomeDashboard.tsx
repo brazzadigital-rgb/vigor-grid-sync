@@ -7,8 +7,7 @@ import { useGymInfo } from "@/hooks/use-home-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "./NotificationBell";
-import CaloriesCard from "./CaloriesCard";
-import WorkoutMetrics from "./WorkoutMetrics";
+import PerformanceDashboard from "./PerformanceDashboard";
 import TrainerCard from "./TrainerCard";
 import BodyFocusCarousel from "./BodyFocusCarousel";
 
@@ -90,11 +89,8 @@ export default function HomeDashboard() {
         </span>
       </motion.div>
 
-      {/* Calories Card */}
-      <CaloriesCard />
-
-      {/* Metrics */}
-      <WorkoutMetrics />
+      {/* Performance Dashboard */}
+      <PerformanceDashboard />
 
       {/* Today's Workout */}
       {isLoading ? (

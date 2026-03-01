@@ -1131,6 +1131,81 @@ export type Database = {
           },
         ]
       }
+      user_daily_metrics: {
+        Row: {
+          active_minutes: number
+          avg_pace: string | null
+          calories_burned: number
+          calories_goal: number
+          day: string
+          distance_km: number
+          gym_id: string
+          id: string
+          intensity_score: number
+          steps: number
+          streak_days: number
+          updated_at: string
+          user_id: string
+          weekly_workout_goal: number
+          workout_time_minutes: number
+          workouts_completed_today: number
+          workouts_completed_week: number
+        }
+        Insert: {
+          active_minutes?: number
+          avg_pace?: string | null
+          calories_burned?: number
+          calories_goal?: number
+          day?: string
+          distance_km?: number
+          gym_id: string
+          id?: string
+          intensity_score?: number
+          steps?: number
+          streak_days?: number
+          updated_at?: string
+          user_id: string
+          weekly_workout_goal?: number
+          workout_time_minutes?: number
+          workouts_completed_today?: number
+          workouts_completed_week?: number
+        }
+        Update: {
+          active_minutes?: number
+          avg_pace?: string | null
+          calories_burned?: number
+          calories_goal?: number
+          day?: string
+          distance_km?: number
+          gym_id?: string
+          id?: string
+          intensity_score?: number
+          steps?: number
+          streak_days?: number
+          updated_at?: string
+          user_id?: string
+          weekly_workout_goal?: number
+          workout_time_minutes?: number
+          workouts_completed_today?: number
+          workouts_completed_week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_daily_metrics_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_daily_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_goals: {
         Row: {
           created_at: string
@@ -1447,6 +1522,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_daily_metrics: {
+        Args: { _day?: string; _user_id: string }
+        Returns: undefined
+      }
       find_profile_by_email: {
         Args: { _email: string }
         Returns: {
