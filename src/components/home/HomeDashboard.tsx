@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import NotificationBell from "./NotificationBell";
 import PerformanceDashboard from "./PerformanceDashboard";
 import PerformanceActivityChart from "./PerformanceActivityChart";
-import ProgressCard from "./ProgressCard";
 import TrainerCard from "./TrainerCard";
 import BodyFocusCarousel from "./BodyFocusCarousel";
 import PromotionSlider from "./PromotionSlider";
@@ -190,9 +189,6 @@ export default memo(function HomeDashboard() {
           <p className="text-xs text-muted-foreground/60">Seu coach vai montar seu treino em breve</p>
         </motion.div>
       )}
-
-      {/* Progress Card */}
-      <ProgressCard />
 
       {/* Performance Dashboard */}
       <PerformanceDashboard />
