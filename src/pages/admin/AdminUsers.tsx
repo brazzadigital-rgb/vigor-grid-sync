@@ -86,11 +86,8 @@ export default function AdminUsers() {
     } else {
       if (!newEmail.trim()) { toast({ title: "Informe o email", variant: "destructive" }); return; }
       
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("id, gym_id")
-        .eq("email", newEmail.trim())
-        .maybeSingle();
+      const { data: foundProfiles } = await supabase.rpc("find_profile_by_email", { _email: newEmail.trim() });
+      const existingProfile = foundProfiles?.[0] ?? null;
 
       if (!existingProfile) {
         toast({ title: "Usuário não encontrado", description: "O email precisa ter uma conta cadastrada no sistema.", variant: "destructive" });
