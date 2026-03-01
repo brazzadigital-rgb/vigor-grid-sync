@@ -33,9 +33,6 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <div className="flex items-center h-16 px-4 border-b border-border">
-        <span className="text-lg font-bold text-gradient-purple">FitAdmin</span>
-      </div>
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
         {sidebarItems.map((item) => {
           const isActive = item.end
@@ -93,6 +90,9 @@ export default function AdminLayout() {
               </button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0 flex flex-col">
+              <div className="flex items-center h-16 px-4 border-b border-border">
+                <span className="text-lg font-bold text-gradient-purple">FitAdmin</span>
+              </div>
               <SidebarNav onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
