@@ -179,7 +179,7 @@ export default function HomeDashboard() {
 
       {/* Personal Trainer */}
       {trainerProfile && (
-        <TrainerCard coachName={trainerProfile.name} coachAvatar={trainerProfile.avatar_url} />
+        <TrainerCard coachId={trainerProfile.id} coachName={trainerProfile.name} coachAvatar={trainerProfile.avatar_url} />
       )}
 
       {/* Activity compact */}
