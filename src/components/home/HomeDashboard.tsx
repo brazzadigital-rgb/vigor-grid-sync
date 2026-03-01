@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import homeHero from "@/assets/home-hero.jpg";
 import { Flame, ChevronRight, Dumbbell, Clock, Sparkles, Check, Loader2, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,7 +38,14 @@ export default function HomeDashboard() {
   };
 
   return (
-    <div className="px-5 pt-12 pb-6 max-w-lg mx-auto space-y-5">
+    <div className="relative max-w-lg mx-auto space-y-5">
+      {/* Hero background image */}
+      <div className="absolute top-0 left-0 right-0 h-64 overflow-hidden">
+        <img src={homeHero} alt="" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
+      </div>
+
+      <div className="relative px-5 pt-12 pb-6 space-y-5">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -154,6 +162,7 @@ export default function HomeDashboard() {
 
       {/* Body Focus */}
       <BodyFocusCarousel />
+      </div>
     </div>
   );
 }
