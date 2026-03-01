@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "./pages/auth/LoginPage";
+import OnboardingPage from "./pages/auth/OnboardingPage";
 import StudentLayout from "./layouts/StudentLayout";
 import StudentHome from "./pages/student/StudentHome";
 import StudentWorkouts from "./pages/student/StudentWorkouts";
@@ -41,7 +42,8 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<LoginPage />} />
+            <Route path="/" element={<OnboardingPage />} />
+            <Route path="/login" element={<LoginPage />} />
 
             {/* Student App — protected */}
             <Route path="/app" element={<ProtectedRoute><StudentLayout><StudentHome /></StudentLayout></ProtectedRoute>} />
