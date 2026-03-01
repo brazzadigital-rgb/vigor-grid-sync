@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import OnboardingShell from "@/components/onboarding/OnboardingShell";
 import ScrollPicker from "@/components/onboarding/ScrollPicker";
 import OptionGrid from "@/components/onboarding/OptionGrid";
@@ -85,6 +86,7 @@ function GenderSelector({ value, onChange }: { value: string; onChange: (v: stri
 export default function OnboardingFlowPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -157,6 +159,7 @@ export default function OnboardingFlowPage() {
         .update({ ...data, completed: true, updated_at: new Date().toISOString() })
         .eq("user_id", user.id);
       setSaving(false);
+      await queryClient.invalidateQueries({ queryKey: ["onboarding-check", user.id] });
       toast.success("Perfil concluído! Vamos começar 💪");
       navigate("/app", { replace: true });
     }
