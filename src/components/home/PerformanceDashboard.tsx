@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useDailyMetrics, type DailyMetrics } from "@/hooks/use-performance-data";
 import PerformanceHeroRing from "./PerformanceHeroRing";
+import PerformanceMetricsGrid from "./PerformanceMetricsGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const fallbackMetrics: DailyMetrics = {
@@ -30,6 +31,8 @@ export default function PerformanceDashboard() {
     );
   }
 
+  const resolvedMetrics = metrics ?? fallbackMetrics;
+
   return (
     <motion.div
       className="space-y-4"
@@ -37,7 +40,9 @@ export default function PerformanceDashboard() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <PerformanceHeroRing metrics={metrics ?? fallbackMetrics} />
+      <PerformanceHeroRing metrics={resolvedMetrics} />
+      <PerformanceMetricsGrid metrics={resolvedMetrics} />
     </motion.div>
   );
 }
+
