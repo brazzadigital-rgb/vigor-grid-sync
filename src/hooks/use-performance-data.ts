@@ -93,37 +93,45 @@ export function useDailyMetrics() {
     queryKey: ["daily-metrics", user?.id, today],
     enabled: !!user,
     queryFn: async (): Promise<DailyMetrics> => {
-      // Tenta recalcular, mas sem bloquear a UI caso RPC falhe
-      await supabase.rpc("calculate_daily_metrics", {
-        _user_id: user!.id,
-        _day: today,
-      });
+      try {
+        // Tenta recalcular, mas sem bloquear a UI caso o RPC falhe
+        await supabase.rpc("calculate_daily_metrics", {
+          _user_id: user!.id,
+          _day: today,
+        });
+      } catch {
+        // ignora falhas de rede momentâneas no RPC
+      }
 
-      const { data, error } = await supabase
-        .from("user_daily_metrics")
-        .select("*")
-        .eq("user_id", user!.id)
-        .eq("day", today)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from("user_daily_metrics")
+          .select("*")
+          .eq("user_id", user!.id)
+          .eq("day", today)
+          .maybeSingle();
 
-      if (error) return defaultMetrics;
-      if (!data) return defaultMetrics;
+        if (error) return defaultMetrics;
+        if (!data) return defaultMetrics;
 
-      return {
-        id: data.id,
-        calories_burned: data.calories_burned,
-        calories_goal: data.calories_goal,
-        active_minutes: data.active_minutes,
-        workout_time_minutes: data.workout_time_minutes,
-        workouts_completed_today: data.workouts_completed_today,
-        workouts_completed_week: data.workouts_completed_week,
-        streak_days: data.streak_days,
-        intensity_score: data.intensity_score,
-        distance_km: Number(data.distance_km),
-        weekly_workout_goal: data.weekly_workout_goal,
-        steps: data.steps,
-        avg_pace: data.avg_pace,
-      };
+        return {
+          id: data.id,
+          calories_burned: data.calories_burned,
+          calories_goal: data.calories_goal,
+          active_minutes: data.active_minutes,
+          workout_time_minutes: data.workout_time_minutes,
+          workouts_completed_today: data.workouts_completed_today,
+          workouts_completed_week: data.workouts_completed_week,
+          streak_days: data.streak_days,
+          intensity_score: data.intensity_score,
+          distance_km: Number(data.distance_km),
+          weekly_workout_goal: data.weekly_workout_goal,
+          steps: data.steps,
+          avg_pace: data.avg_pace,
+        };
+      } catch {
+        return defaultMetrics;
+      }
     },
     refetchInterval: 60000,
   });
