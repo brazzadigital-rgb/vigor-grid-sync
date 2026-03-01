@@ -77,12 +77,16 @@ export default function AdminPersonalTrainers() {
     }
   };
 
-  const uploadAvatar = async (userId: string): Promise<string | null> => {
+  const uploadAvatar = async (coachUserId: string): Promise<string | null> => {
     if (!avatarFile) return null;
+    if (!profile?.id) throw new Error("Sessão inválida para upload de avatar");
+
     const ext = avatarFile.name.split(".").pop();
-    const path = `${userId}/avatar.${ext}`;
+    const path = `${profile.id}/${coachUserId}/avatar.${ext}`;
+
     const { error } = await supabase.storage.from("avatars").upload(path, avatarFile, { upsert: true });
     if (error) throw error;
+
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
     return data.publicUrl;
   };
@@ -92,7 +96,9 @@ export default function AdminPersonalTrainers() {
       toast({ title: "Preencha nome e email", variant: "destructive" });
       return;
     }
+
     setSaving(true);
+
     try {
       const gymId = profile!.gym_id!;
       let userId = editingCoach?.user_id;
@@ -101,11 +107,13 @@ export default function AdminPersonalTrainers() {
         // Find or error - coach must already have an account
         const { data: found, error: fErr } = await supabase.rpc("find_profile_by_email", { _email: form.email.trim().toLowerCase() });
         if (fErr) throw fErr;
+
         if (!found || found.length === 0) {
           toast({ title: "Usuário não encontrado", description: "O email informado precisa ter uma conta cadastrada na plataforma.", variant: "destructive" });
           setSaving(false);
           return;
         }
+
         userId = found[0].id;
 
         // Add coach role
@@ -130,7 +138,8 @@ export default function AdminPersonalTrainers() {
       if (avatarUrl) profileUpdate.avatar_url = avatarUrl;
 
       if (Object.keys(profileUpdate).length > 0 && userId) {
-        await supabase.from("profiles").update(profileUpdate).eq("id", userId);
+        const { error: profileErr } = await supabase.from("profiles").update(profileUpdate).eq("id", userId);
+        if (profileErr) throw profileErr;
       }
 
       // Upsert coach_profiles
@@ -149,9 +158,14 @@ export default function AdminPersonalTrainers() {
       };
 
       if (editingCoach?.coach_profile_id) {
-        await supabase.from("coach_profiles").update(coachData).eq("id", editingCoach.coach_profile_id);
+        const { error: coachErr } = await supabase
+          .from("coach_profiles")
+          .update(coachData)
+          .eq("id", editingCoach.coach_profile_id);
+        if (coachErr) throw coachErr;
       } else {
-        await supabase.from("coach_profiles").insert(coachData as any);
+        const { error: coachErr } = await supabase.from("coach_profiles").insert(coachData as any);
+        if (coachErr) throw coachErr;
       }
 
       qc.invalidateQueries({ queryKey: ["gym-coaches"] });
