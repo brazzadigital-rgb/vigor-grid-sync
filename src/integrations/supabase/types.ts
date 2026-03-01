@@ -483,6 +483,57 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          gym_id: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          gym_id: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          gym_id?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_data: {
         Row: {
           activity_level: string | null
@@ -1441,6 +1492,15 @@ export type Database = {
         | "reabilitacao"
         | "outro"
       membership_status: "active" | "paused" | "cancelled" | "expired"
+      notification_type:
+        | "payment_paid"
+        | "payment_failed"
+        | "plan_expiring"
+        | "plan_activated"
+        | "promotion"
+        | "order_paid"
+        | "new_workout"
+        | "coach_message"
       payment_status: "paid" | "pending" | "failed" | "refunded"
       progress_type: "weight" | "bodyfat" | "measurements"
       subscription_status: "active" | "past_due" | "cancelled" | "trialing"
@@ -1587,6 +1647,16 @@ export const Constants = {
         "outro",
       ],
       membership_status: ["active", "paused", "cancelled", "expired"],
+      notification_type: [
+        "payment_paid",
+        "payment_failed",
+        "plan_expiring",
+        "plan_activated",
+        "promotion",
+        "order_paid",
+        "new_workout",
+        "coach_message",
+      ],
       payment_status: ["paid", "pending", "failed", "refunded"],
       progress_type: ["weight", "bodyfat", "measurements"],
       subscription_status: ["active", "past_due", "cancelled", "trialing"],
