@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { saveActiveWorkout, loadActiveWorkout, clearActiveWorkout } from "@/lib/active-workout";
 
 export default function WorkoutExecution() {
   const navigate = useNavigate();
@@ -55,19 +56,45 @@ export default function WorkoutExecution() {
     return 5;
   };
 
-  const [started, setStarted] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentSet, setCurrentSet] = useState(1);
+  // Restore saved state if exists for this workout
+  const savedState = useRef(loadActiveWorkout());
+  const isResuming = savedState.current?.workoutId === id;
+
+  const [started, setStarted] = useState(isResuming);
+  const [currentIndex, setCurrentIndex] = useState(isResuming ? savedState.current!.currentIndex : 0);
+  const [currentSet, setCurrentSet] = useState(isResuming ? savedState.current!.currentSet : 1);
   const [isPaused, setIsPaused] = useState(false);
   const [isResting, setIsResting] = useState(false);
   const [restTime, setRestTime] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsed, setElapsed] = useState(isResuming ? savedState.current!.elapsed : 0);
   const [finished, setFinished] = useState(false);
   const [showTips, setShowTips] = useState(false);
-  const [weightLog, setWeightLog] = useState<Record<number, Record<number, string>>>({});
+  const [weightLog, setWeightLog] = useState<Record<number, Record<number, string>>>(
+    isResuming ? savedState.current!.weightLog : {}
+  );
   const [currentWeight, setCurrentWeight] = useState("");
-  const [weightConfirmed, setWeightConfirmed] = useState<Record<string, boolean>>({});
+  const [weightConfirmed, setWeightConfirmed] = useState<Record<string, boolean>>(
+    isResuming ? savedState.current!.weightConfirmed : {}
+  );
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const startedAtRef = useRef(isResuming ? savedState.current!.startedAt : new Date().toISOString());
+
+  // Persist active workout state periodically
+  useEffect(() => {
+    if (!started || finished || !id) return;
+    const workoutName = workout?.workout_templates?.name ?? "Treino";
+    saveActiveWorkout({
+      workoutId: id,
+      workoutName,
+      currentIndex,
+      currentSet,
+      elapsed,
+      weightLog,
+      weightConfirmed,
+      totalExercises: exercises.length,
+      startedAt: startedAtRef.current,
+    });
+  }, [started, finished, id, currentIndex, currentSet, elapsed, weightLog, weightConfirmed, exercises.length]);
 
   useEffect(() => {
     const saved = weightLog[currentIndex]?.[currentSet] ?? "";
@@ -187,6 +214,7 @@ export default function WorkoutExecution() {
       setRestTime(0);
     } else {
       setFinished(true);
+      clearActiveWorkout();
       saveSession.mutate();
     }
   };
@@ -286,7 +314,7 @@ export default function WorkoutExecution() {
             variant="glow"
             size="xl"
             className="w-full"
-            onClick={() => setStarted(true)}
+            onClick={() => { startedAtRef.current = new Date().toISOString(); setStarted(true); }}
           >
             <Play className="w-5 h-5" />
             Iniciar Treino
