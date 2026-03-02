@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp, Flame, Weight } from "lucide-react";
+import { ArrowLeft, Pause, Play, SkipForward, Check, Timer, Loader2, Lightbulb, ChevronDown, ChevronUp, Flame, Weight, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyAssignedWorkouts, useWorkoutDays, useMyWorkoutSessions } from "@/hooks/use-supabase-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function WorkoutExecution() {
   const navigate = useNavigate();
@@ -44,20 +45,17 @@ export default function WorkoutExecution() {
         }))
     );
 
-  // Realistic kcal/min rates by exercise category (based on ACSM / exercise physiology data)
-  // Accounts for work intervals + rest periods within sets
   const getKcalPerMin = (category: string | null, muscleGroup: string | null) => {
     const cat = (category ?? "").toLowerCase();
     const mg = (muscleGroup ?? "").toLowerCase();
     if (cat.includes("aerób") || cat.includes("cardio") || mg.includes("cardio")) return 10;
     if (cat.includes("compound") || cat.includes("composto")) return 6.5;
     if (cat.includes("isométr")) return 3.5;
-    // isolamento or unknown
     if (cat.includes("isolamento") || cat.includes("isolation")) return 4.5;
-    // default for unknown category - moderate estimate
     return 5;
   };
 
+  const [started, setStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
@@ -66,19 +64,20 @@ export default function WorkoutExecution() {
   const [elapsed, setElapsed] = useState(0);
   const [finished, setFinished] = useState(false);
   const [showTips, setShowTips] = useState(false);
-  // Track weight per exercise per set: { [exerciseIndex]: { [setNumber]: weight } }
   const [weightLog, setWeightLog] = useState<Record<number, Record<number, string>>>({});
   const [currentWeight, setCurrentWeight] = useState("");
+  const [weightConfirmed, setWeightConfirmed] = useState<Record<string, boolean>>({});
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
-  // When exercise or set changes, load the saved weight
   useEffect(() => {
     const saved = weightLog[currentIndex]?.[currentSet] ?? "";
     setCurrentWeight(saved);
   }, [currentIndex, currentSet]);
 
+  const weightKey = `${currentIndex}-${currentSet}`;
+  const isCurrentWeightConfirmed = weightConfirmed[weightKey] ?? false;
+
   const handleWeightChange = useCallback((value: string) => {
-    // Allow only numbers and decimal point, max 6 chars
     const sanitized = value.replace(/[^0-9.]/g, "").slice(0, 6);
     setCurrentWeight(sanitized);
     setWeightLog(prev => ({
@@ -88,7 +87,15 @@ export default function WorkoutExecution() {
         [currentSet]: sanitized,
       },
     }));
-  }, [currentIndex, currentSet]);
+    // Unconfirm when editing
+    setWeightConfirmed(prev => ({ ...prev, [weightKey]: false }));
+  }, [currentIndex, currentSet, weightKey]);
+
+  const handleConfirmWeight = useCallback(() => {
+    if (currentWeight) {
+      setWeightConfirmed(prev => ({ ...prev, [weightKey]: true }));
+    }
+  }, [currentWeight, weightKey]);
 
   const exercise = exercises[currentIndex];
   const progress = exercises.length > 0 ? ((currentIndex) / exercises.length) * 100 : 0;
@@ -96,8 +103,6 @@ export default function WorkoutExecution() {
   const saveSession = useMutation({
     mutationFn: async () => {
       if (!workout || !profile?.gym_id) return;
-
-      // 1. Create the session
       const { data: session, error } = await supabase.from("workout_sessions").insert({
         member_id: profile.id,
         gym_id: profile.gym_id,
@@ -107,26 +112,18 @@ export default function WorkoutExecution() {
       }).select("id").single();
       if (error) throw error;
 
-      // 2. Save workout_logs for each exercise with realistic calorie estimation
       if (session && exercises.length > 0) {
         const avgDurationPerExercise = Math.max(30, Math.round(elapsed / exercises.length));
         const logs = exercises.map((ex, exIdx) => {
           const durationSecs = avgDurationPerExercise;
           const durationMin = durationSecs / 60;
           const kcalPerMin = getKcalPerMin(ex.category, ex.muscleGroup);
-
-          // Base calories from duration × category rate
           let calEst = Math.round(durationMin * kcalPerMin);
-
-          // Weight intensity bonus: heavier loads = more energy expenditure
-          // ~0.5% bonus per kg for compound, ~0.3% for isolation
           const loggedWeight = parseFloat(weightLog[exIdx]?.[1] || "0") || 0;
           if (loggedWeight > 0) {
             const bonusFactor = (ex.category ?? "").toLowerCase().includes("compound") ? 0.005 : 0.003;
             calEst = Math.round(calEst * (1 + loggedWeight * bonusFactor));
           }
-
-          // Minimum floor: at least 5 kcal per exercise
           calEst = Math.max(5, calEst);
           return {
             session_id: session.id,
@@ -153,8 +150,9 @@ export default function WorkoutExecution() {
     },
   });
 
+  // Timer only runs after started
   useEffect(() => {
-    if (finished || isPaused) return;
+    if (!started || finished || isPaused) return;
     timerRef.current = setInterval(() => {
       setElapsed((e) => e + 1);
       if (isResting) {
@@ -165,7 +163,7 @@ export default function WorkoutExecution() {
       }
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [isPaused, isResting, finished]);
+  }, [started, isPaused, isResting, finished]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
@@ -193,7 +191,6 @@ export default function WorkoutExecution() {
     }
   };
 
-  // Parse instructions
   const parsedInstructions = (() => {
     if (!exercise?.instructions) return null;
     try { return JSON.parse(exercise.instructions); } catch { return null; }
@@ -229,17 +226,14 @@ export default function WorkoutExecution() {
     );
   }
 
-  // Real-time calorie estimate based on elapsed time and exercise categories
   const estimatedCalories = (() => {
     if (exercises.length === 0) return 0;
     const completedExercises = exercises.slice(0, currentIndex);
     const avgTimePerEx = elapsed / Math.max(1, currentIndex + 1);
     let total = 0;
-    // Completed exercises: full duration
     completedExercises.forEach(ex => {
       total += (avgTimePerEx / 60) * getKcalPerMin(ex.category, ex.muscleGroup);
     });
-    // Current exercise: partial
     if (exercise) {
       const currentElapsed = elapsed - (currentIndex * avgTimePerEx);
       total += (Math.max(0, currentElapsed) / 60) * getKcalPerMin(exercise.category, exercise.muscleGroup);
@@ -248,6 +242,61 @@ export default function WorkoutExecution() {
   })();
   const performanceScore = Math.min(100, Math.round((exercises.length / Math.max(1, exercises.length)) * 80 + Math.min(20, elapsed / 60)));
 
+  // ========== PRE-START SCREEN ==========
+  if (!started) {
+    const template = workout?.workout_templates;
+    return (
+      <div className="px-5 pt-12 pb-6 max-w-lg mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-secondary text-foreground">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">{template?.name ?? "Treino"}</h1>
+            <p className="text-sm text-muted-foreground">{exercises.length} exercícios</p>
+          </div>
+        </div>
+
+        {/* Exercise preview list */}
+        <div className="space-y-3">
+          {exercises.map((ex, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+              {ex.mediaUrl ? (
+                <img src={ex.mediaUrl} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Dumbbell className="w-5 h-5 text-primary" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{ex.name}</p>
+                <p className="text-xs text-muted-foreground">{ex.sets} × {ex.reps} • {ex.rest}s descanso</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Start button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Button
+            variant="glow"
+            size="xl"
+            className="w-full"
+            onClick={() => setStarted(true)}
+          >
+            <Play className="w-5 h-5" />
+            Iniciar Treino
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ========== FINISHED SCREEN ==========
   if (finished) {
     const particles = Array.from({ length: 12 }, (_, i) => {
       const angle = (i / 12) * 360;
@@ -260,14 +309,10 @@ export default function WorkoutExecution() {
 
     return (
       <div className="px-5 pt-10 pb-6 max-w-lg mx-auto flex flex-col items-center justify-center min-h-[85vh] space-y-8 text-center overflow-hidden">
-        {/* Hero Completion Animation */}
         <div className="relative flex items-center justify-center">
-          {/* Expanding pulse rings */}
           <div className="absolute w-32 h-32 rounded-full border border-primary/30 animate-completion-pulse-ring" />
           <div className="absolute w-32 h-32 rounded-full border border-primary/20 animate-completion-pulse-ring" style={{ animationDelay: "0.5s" }} />
           <div className="absolute w-32 h-32 rounded-full border border-primary/10 animate-completion-pulse-ring" style={{ animationDelay: "1s" }} />
-
-          {/* Particles */}
           {particles.map((p, i) => (
             <div
               key={i}
@@ -283,8 +328,6 @@ export default function WorkoutExecution() {
               } as any}
             />
           ))}
-
-          {/* Main circle */}
           <div className="relative w-28 h-28 animate-completion-ring">
             <div className="w-full h-full rounded-full bg-gradient-to-br from-primary via-accent to-primary/80 p-[3px]">
               <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
@@ -294,18 +337,13 @@ export default function WorkoutExecution() {
           </div>
         </div>
 
-        {/* Title */}
         <div className="space-y-2 animate-completion-slide-up" style={{ animationDelay: "0.6s" }}>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            Treino Concluído
-          </h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Treino Concluído</h1>
           <p className="text-sm text-muted-foreground">Você deu mais um passo rumo ao seu objetivo</p>
         </div>
 
-        {/* Performance Score — large hero stat */}
         <div className="animate-completion-slide-up w-full" style={{ animationDelay: "0.8s" }}>
           <div className="relative rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-primary/5 p-6 overflow-hidden">
-            {/* Shimmer overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer pointer-events-none" />
             <p className="text-xs text-primary font-semibold uppercase tracking-[0.2em] mb-3">Score de Performance</p>
             <div className="flex items-baseline justify-center gap-1">
@@ -325,7 +363,6 @@ export default function WorkoutExecution() {
           </div>
         </div>
 
-        {/* Stats Grid — glass cards */}
         <div className="grid grid-cols-3 gap-3 w-full">
           {[
             { icon: <Timer className="w-5 h-5" />, value: formatTime(elapsed), label: "Duração", color: "text-info", delay: "1s" },
@@ -344,7 +381,6 @@ export default function WorkoutExecution() {
           ))}
         </div>
 
-        {/* Actions */}
         <div className="w-full space-y-3 pt-2 animate-completion-slide-up" style={{ animationDelay: "1.4s" }}>
           <Button variant="glow" size="lg" className="w-full h-14 text-base font-semibold" onClick={() => navigate("/app")}>
             Voltar ao Início
@@ -357,6 +393,7 @@ export default function WorkoutExecution() {
     );
   }
 
+  // ========== ACTIVE WORKOUT ==========
   return (
     <div className="px-5 pt-12 pb-6 max-w-lg mx-auto space-y-5">
       {/* Header */}
@@ -390,17 +427,27 @@ export default function WorkoutExecution() {
       {/* Current Exercise */}
       {!isResting && exercise && (
         <div className="rounded-2xl border border-primary/20 bg-card overflow-hidden glow-purple">
-          {/* Exercise Image */}
-          {exercise.mediaUrl && (
-            <div className="w-full bg-secondary">
+          {/* Exercise Image with timer overlay */}
+          <div className="relative w-full bg-secondary">
+            {exercise.mediaUrl ? (
               <img
                 src={exercise.mediaUrl}
                 alt={exercise.name}
                 className="w-full h-auto object-contain"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
+            ) : (
+              <div className="w-full h-44 flex items-center justify-center">
+                <Dumbbell className="w-12 h-12 text-muted-foreground/30" />
+              </div>
+            )}
+            {/* Timer badge on image */}
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-background/80 backdrop-blur-md border border-border/60 rounded-xl px-3 py-1.5 shadow-lg">
+              <Timer className="w-4 h-4 text-primary" />
+              <span className="text-sm font-bold font-mono text-foreground">{formatTime(elapsed)}</span>
             </div>
-          )}
+          </div>
+
           <div className="p-6 space-y-4">
             <div className="text-center space-y-2">
               <p className="text-xs text-primary font-medium uppercase tracking-wider">Exercício {currentIndex + 1}</p>
@@ -418,9 +465,13 @@ export default function WorkoutExecution() {
               </div>
             </div>
 
-            {/* Weight input */}
-            <div className="flex items-center justify-center gap-3 pt-1">
-              <div className="flex items-center gap-2 bg-secondary/60 border border-border rounded-xl px-4 py-2.5">
+            {/* Weight input with OK button */}
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <div className={`flex items-center gap-2 border rounded-xl px-4 py-2.5 transition-colors ${
+                isCurrentWeightConfirmed
+                  ? "bg-success/10 border-success/30"
+                  : "bg-secondary/60 border-border"
+              }`}>
                 <Weight className="w-4 h-4 text-primary shrink-0" />
                 <input
                   type="text"
@@ -432,6 +483,29 @@ export default function WorkoutExecution() {
                 />
                 <span className="text-xs text-muted-foreground font-medium">kg</span>
               </div>
+              <AnimatePresence>
+                {currentWeight && !isCurrentWeightConfirmed && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={handleConfirmWeight}
+                    className="h-11 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+                  >
+                    OK
+                  </motion.button>
+                )}
+              </AnimatePresence>
+              {isCurrentWeightConfirmed && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="h-11 w-11 rounded-xl bg-success/15 border border-success/30 flex items-center justify-center"
+                >
+                  <Check className="w-4 h-4 text-success" />
+                </motion.div>
+              )}
             </div>
 
             {/* Tips toggle */}
