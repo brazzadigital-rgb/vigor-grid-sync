@@ -401,10 +401,6 @@ export default function WorkoutExecution() {
         <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-secondary text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2 text-sm font-mono text-foreground">
-          <Timer className="w-4 h-4 text-primary" />
-          {formatTime(elapsed)}
-        </div>
         <span className="text-sm text-muted-foreground">{currentIndex + 1}/{exercises.length}</span>
       </div>
 
@@ -427,7 +423,7 @@ export default function WorkoutExecution() {
       {/* Current Exercise */}
       {!isResting && exercise && (
         <div className="rounded-2xl border border-primary/20 bg-card overflow-hidden glow-purple">
-          {/* Exercise Image with timer overlay */}
+          {/* Exercise Image */}
           <div className="relative w-full bg-secondary">
             {exercise.mediaUrl ? (
               <img
@@ -441,15 +437,16 @@ export default function WorkoutExecution() {
                 <Dumbbell className="w-12 h-12 text-muted-foreground/30" />
               </div>
             )}
-            {/* Timer badge on image */}
-            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-background/80 backdrop-blur-md border border-border/60 rounded-xl px-3 py-1.5 shadow-lg">
-              <Timer className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold font-mono text-foreground">{formatTime(elapsed)}</span>
-            </div>
           </div>
 
           <div className="p-6 space-y-4">
-            <div className="text-center space-y-2">
+            {/* Timer highlight */}
+            <div className="flex items-center justify-center gap-2 py-1">
+              <Timer className="w-5 h-5 text-primary" />
+              <span className="text-2xl font-black font-mono text-foreground tracking-wider">{formatTime(elapsed)}</span>
+            </div>
+
+            <div className="text-center space-y-1">
               <p className="text-xs text-primary font-medium uppercase tracking-wider">Exercício {currentIndex + 1}</p>
               <h2 className="text-xl font-bold text-foreground">{exercise.name}</h2>
             </div>
