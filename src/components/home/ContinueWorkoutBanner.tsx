@@ -56,10 +56,15 @@ export default memo(function ContinueWorkoutBanner() {
         <span className="text-xs text-muted-foreground">
           {active.currentIndex}/{active.totalExercises} exercícios • Série {active.currentSet}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-warning group-hover:text-warning/80 transition-colors">
-          <Play className="w-3.5 h-3.5" />
-          Continuar
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-warning/15 text-warning border border-warning/25 rounded-full px-2.5 py-0.5">
+            {progressPct}%
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-warning group-hover:text-warning/80 transition-colors">
+            <Play className="w-3.5 h-3.5" />
+            Continuar
+          </span>
+        </div>
       </div>
     </motion.div>
   );
