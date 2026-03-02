@@ -16,6 +16,7 @@ import PerformanceActivityChart from "./PerformanceActivityChart";
 import TrainerCard from "./TrainerCard";
 import BodyFocusCarousel from "./BodyFocusCarousel";
 import PromotionSlider from "./PromotionSlider";
+import NoPlanBanner from "./NoPlanBanner";
 
 const getLocalDayIso = (date = new Date()) => {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -32,7 +33,7 @@ const getGreeting = () => {
 export default memo(function HomeDashboard() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { data: membership } = useMyMembership();
+  const { data: membership, isLoading: membershipLoading } = useMyMembership();
   const { data: assignedWorkouts, isLoading } = useMyAssignedWorkouts();
   const { data: sessions } = useMyWorkoutSessions();
   const { data: stats } = useMyWorkoutStats();
@@ -133,6 +134,12 @@ export default memo(function HomeDashboard() {
           {membership ? (membership.status === "active" ? "Ativo" : "Pendente") : "Inativo"}
         </span>
       </motion.div>
+
+      {/* No Plan Banner */}
+      <NoPlanBanner
+        hasActivePlan={!!membership && membership.status === "active"}
+        isLoading={membershipLoading}
+      />
 
       {/* Today's Workout */}
       {isLoading ? (
