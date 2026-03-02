@@ -17,6 +17,7 @@ import TrainerCard from "./TrainerCard";
 import BodyFocusCarousel from "./BodyFocusCarousel";
 import PromotionSlider from "./PromotionSlider";
 import NoPlanBanner from "./NoPlanBanner";
+import ContinueWorkoutBanner from "./ContinueWorkoutBanner";
 
 const getLocalDayIso = (date = new Date()) => {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -140,6 +141,9 @@ export default memo(function HomeDashboard() {
         hasActivePlan={!!membership && membership.status === "active"}
         isLoading={membershipLoading}
       />
+
+      {/* Continue Workout Banner */}
+      <ContinueWorkoutBanner />
 
       {/* Today's Workout */}
       {isLoading ? (
