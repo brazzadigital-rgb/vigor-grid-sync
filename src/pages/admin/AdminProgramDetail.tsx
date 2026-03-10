@@ -176,6 +176,8 @@ export default function AdminProgramDetail() {
 
     for (let i = 0; i < itemsWithoutMedia.length; i++) {
       await handleGenerateMedia(itemsWithoutMedia[i]);
+      // Stop if credits ran out (generatingMedia was set to null early)
+      if (generatingMedia === null && i < itemsWithoutMedia.length - 1) break;
       // Wait 3s between requests to avoid rate limiting
       if (i < itemsWithoutMedia.length - 1) {
         await new Promise(r => setTimeout(r, 3000));
@@ -183,7 +185,7 @@ export default function AdminProgramDetail() {
     }
 
     setGeneratingAll(false);
-    toast({ title: "Todas as ilustrações foram geradas! 🎉" });
+    toast({ title: "Geração finalizada! 🎉" });
   };
 
   const exercisesByGroup = (exercises ?? []).reduce((acc: Record<string, any[]>, ex: any) => {
