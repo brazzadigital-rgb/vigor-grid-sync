@@ -122,17 +122,39 @@ export default function AdminProgramDetail() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // supabase.functions.invoke puts non-2xx response body into error context
+        const errorMsg = typeof error === "object" && error?.message ? error.message : String(error);
+        const is402 = errorMsg.includes("402") || errorMsg.includes("credits") || errorMsg.includes("Payment");
+        const is429 = errorMsg.includes("429") || errorMsg.includes("Rate limit");
+        if (is402) {
+          toast({ title: "Créditos de IA esgotados", description: "Adicione créditos no seu workspace Lovable (Settings → Workspace → Usage) para continuar gerando ilustrações.", variant: "destructive" });
+        } else if (is429) {
+          toast({ title: "Limite de requisições", description: "Aguarde alguns segundos e tente novamente.", variant: "destructive" });
+        } else {
+          throw error;
+        }
+        setGeneratingMedia(null);
+        return;
+      }
 
       if (data?.error) {
-        toast({ title: "Erro na IA", description: data.error, variant: "destructive" });
+        const is402 = data.error.includes("credits") || data.error.includes("funds");
+        const is429 = data.error.includes("Rate limit");
+        if (is402) {
+          toast({ title: "Créditos de IA esgotados", description: "Adicione créditos no seu workspace Lovable (Settings → Workspace → Usage).", variant: "destructive" });
+        } else if (is429) {
+          toast({ title: "Limite de requisições", description: "Aguarde alguns segundos e tente novamente.", variant: "destructive" });
+        } else {
+          toast({ title: "Erro na IA", description: data.error, variant: "destructive" });
+        }
       } else {
         toast({ title: "Ilustração gerada! ✨", description: `Imagem e instruções criadas para ${exercise.name}` });
         qc.invalidateQueries({ queryKey: ["workout-days", id] });
         qc.invalidateQueries({ queryKey: ["gym-exercises"] });
       }
     } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
+      toast({ title: "Erro", description: e.message ?? "Erro desconhecido", variant: "destructive" });
     }
     setGeneratingMedia(null);
   };
@@ -154,6 +176,8 @@ export default function AdminProgramDetail() {
 
     for (let i = 0; i < itemsWithoutMedia.length; i++) {
       await handleGenerateMedia(itemsWithoutMedia[i]);
+      // Stop if credits ran out (generatingMedia was set to null early)
+      if (generatingMedia === null && i < itemsWithoutMedia.length - 1) break;
       // Wait 3s between requests to avoid rate limiting
       if (i < itemsWithoutMedia.length - 1) {
         await new Promise(r => setTimeout(r, 3000));
@@ -161,7 +185,7 @@ export default function AdminProgramDetail() {
     }
 
     setGeneratingAll(false);
-    toast({ title: "Todas as ilustrações foram geradas! 🎉" });
+    toast({ title: "Geração finalizada! 🎉" });
   };
 
   const exercisesByGroup = (exercises ?? []).reduce((acc: Record<string, any[]>, ex: any) => {
