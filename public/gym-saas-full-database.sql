@@ -1,12 +1,13 @@
 -- ============================================================
 -- GYM SaaS White-Label — SQL COMPLETO PARA SUPABASE PRO
 -- Gerado em: 2026-03-18
+-- INCLUI: Schema + RLS + Functions + Triggers + Indexes + Seed Data
 -- 
 -- INSTRUÇÕES:
 -- 1. Crie um novo projeto no Supabase
 -- 2. Vá em SQL Editor
 -- 3. Cole e execute este arquivo inteiro
--- 4. Crie os Storage Buckets (seção no final)
+-- 4. Crie um usuário admin manualmente (seção no final)
 -- ============================================================
 
 -- ============================================
@@ -81,7 +82,7 @@ CREATE TABLE public.plans (
   price_cents INT NOT NULL DEFAULT 0,
   billing_cycle billing_cycle NOT NULL DEFAULT 'monthly',
   active BOOLEAN DEFAULT true,
-  personal_trainer_id UUID REFERENCES public.profiles(id),
+  personal_trainer_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -269,7 +270,7 @@ CREATE TABLE public.access_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   gym_id UUID REFERENCES public.gyms(id) ON DELETE CASCADE NOT NULL,
   device_id UUID REFERENCES public.devices(id) ON DELETE SET NULL,
-  member_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  member_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   credential_id UUID REFERENCES public.access_credentials(id) ON DELETE SET NULL,
   event_time TIMESTAMPTZ NOT NULL DEFAULT now(),
   decision access_decision NOT NULL DEFAULT 'deny',
@@ -307,7 +308,7 @@ CREATE TABLE public.notifications (
 CREATE TABLE public.user_daily_metrics (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   gym_id UUID NOT NULL REFERENCES public.gyms(id),
-  user_id UUID NOT NULL REFERENCES public.profiles(id),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   day DATE NOT NULL DEFAULT CURRENT_DATE,
   calories_burned INT NOT NULL DEFAULT 0,
   calories_goal INT NOT NULL DEFAULT 2500,
@@ -844,7 +845,6 @@ LANGUAGE plpgsql SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
 BEGIN
-  -- Plan removed → cancel + block credentials
   IF OLD.plan_id IS NOT NULL AND NEW.plan_id IS NULL THEN
     NEW.status := 'cancelled';
     UPDATE public.access_credentials
@@ -852,7 +852,6 @@ BEGIN
     WHERE member_id = NEW.member_id AND gym_id = NEW.gym_id AND status = 'active';
   END IF;
 
-  -- Plan added → reactivate membership + credential
   IF NEW.plan_id IS NOT NULL AND (OLD.plan_id IS NULL OR OLD.plan_id != NEW.plan_id) AND OLD.status != 'active' THEN
     NEW.status := 'active';
     NEW.start_at := now();
@@ -874,7 +873,6 @@ BEGIN
     END IF;
   END IF;
 
-  -- Explicit cancel
   IF NEW.status = 'cancelled' AND OLD.status != 'cancelled' THEN
     UPDATE public.access_credentials
     SET status = 'blocked'
@@ -1079,7 +1077,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.user_daily_metrics;
 
 -- ============================================
 -- 10. STORAGE BUCKETS
--- (Execute separadamente se necessário)
 -- ============================================
 INSERT INTO storage.buckets (id, name, public) VALUES ('exercise-media', 'exercise-media', true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
@@ -1103,6 +1100,296 @@ CREATE POLICY "Staff uploads store product images" ON storage.objects FOR INSERT
 CREATE POLICY "Staff updates store product images" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'store-products' AND is_gym_staff(auth.uid(), get_user_gym_id(auth.uid())));
 CREATE POLICY "Staff deletes store product images" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'store-products' AND is_gym_staff(auth.uid(), get_user_gym_id(auth.uid())));
 
--- ============================================
--- FIM DO SCRIPT
--- ============================================
+-- ============================================================
+-- 11. SEED DATA — Academia, Exercícios, Planos, Treinos, Loja
+-- ============================================================
+
+-- 11.1 GYM
+INSERT INTO public.gyms (id, name, slug, accent_color, timezone)
+VALUES ('00000000-0000-0000-0000-000000000001', 'FitPro Academy', 'fitpro', '#7148EC', 'America/Sao_Paulo');
+
+-- 11.2 EXERCISES (35 exercícios)
+INSERT INTO public.exercises (id, gym_id, name, category, equipment, muscle_group) VALUES
+  ('61e55003-8516-4fd0-8aa5-ecbc7057064e', '00000000-0000-0000-0000-000000000001', 'Abdominal Crunch', 'isolamento', 'peso corporal', 'abdômen'),
+  ('a75135a9-8199-46e0-8c50-f03ecb1120ea', '00000000-0000-0000-0000-000000000001', 'Abdução de Quadril', 'isolamento', 'máquina', 'glúteos'),
+  ('77536277-ff70-4b70-929d-c0fc4e9ddf9a', '00000000-0000-0000-0000-000000000001', 'Agachamento Livre', 'compound', 'barra', 'pernas'),
+  ('1b8a688a-d922-47d5-a08c-ff38b3065cd2', '00000000-0000-0000-0000-000000000001', 'Bike Ergométrica', 'aeróbico', 'máquina', 'cardio'),
+  ('818e7200-c67f-493b-93cb-a2b6b323722c', '00000000-0000-0000-0000-000000000001', 'Búlgaro', 'compound', 'halteres', 'glúteos'),
+  ('21360793-1736-401c-91de-41e7007f83fe', '00000000-0000-0000-0000-000000000001', 'Cadeira Extensora', 'isolamento', 'máquina', 'pernas'),
+  ('e9249978-15ea-4180-b13d-4f26bf50a7a0', '00000000-0000-0000-0000-000000000001', 'Crossover', 'isolamento', 'cabo', 'peito'),
+  ('d10988ae-69bf-4863-af4e-18f7d2a0b77e', '00000000-0000-0000-0000-000000000001', 'Crucifixo na Máquina', 'isolamento', 'máquina', 'peito'),
+  ('b2edebf5-3d5d-473b-9717-4a25e5454092', '00000000-0000-0000-0000-000000000001', 'Desenvolvimento com Halteres', 'compound', 'halteres', 'ombros'),
+  ('1d6e66ee-81de-4b11-bc71-d81f8f9e1c19', '00000000-0000-0000-0000-000000000001', 'Elevação de Pernas', 'isolamento', 'peso corporal', 'abdômen'),
+  ('9258d882-d90d-400e-88eb-e767bc056fa1', '00000000-0000-0000-0000-000000000001', 'Elevação Frontal', 'isolamento', 'halteres', 'ombros'),
+  ('6d37546e-c5e5-4f90-8113-2c9defc7cc35', '00000000-0000-0000-0000-000000000001', 'Elevação Lateral', 'isolamento', 'halteres', 'ombros'),
+  ('feb29c07-78bf-4f03-b878-908aa20ace05', '00000000-0000-0000-0000-000000000001', 'Elíptico', 'aeróbico', 'máquina', 'cardio'),
+  ('d0e4ea05-16ec-4b9e-ad82-8efdbe02759e', '00000000-0000-0000-0000-000000000001', 'Esteira (HIIT)', 'aeróbico', 'máquina', 'cardio'),
+  ('4ebf4222-f617-4e42-a777-e9b9fdd8e39d', '00000000-0000-0000-0000-000000000001', 'Face Pull', 'isolamento', 'cabo', 'ombros'),
+  ('372caab0-b23b-4dd2-a3f1-79566dae5898', '00000000-0000-0000-0000-000000000001', 'Hip Thrust', 'compound', 'barra', 'glúteos'),
+  ('9b02f06a-9940-4375-b32f-165f0dda75a3', '00000000-0000-0000-0000-000000000001', 'Leg Press 45°', 'compound', 'máquina', 'pernas'),
+  ('1306c209-ccd8-494d-a93b-d660d45ee56b', '00000000-0000-0000-0000-000000000001', 'Mergulho no Banco', 'compound', 'peso corporal', 'tríceps'),
+  ('af7d1e74-a950-4a81-ac80-731e8f178513', '00000000-0000-0000-0000-000000000001', 'Mesa Flexora', 'isolamento', 'máquina', 'pernas'),
+  ('7fb13098-80a0-44ea-b508-6413f38bff06', '00000000-0000-0000-0000-000000000001', 'Panturrilha no Smith', 'isolamento', 'smith', 'pernas'),
+  ('4f553380-07a5-4771-b7bd-1a63a135f19c', '00000000-0000-0000-0000-000000000001', 'Prancha', 'isométrico', 'peso corporal', 'abdômen'),
+  ('3e908649-ae49-47bc-9649-a9e914e6adb7', '00000000-0000-0000-0000-000000000001', 'Pulldown', 'compound', 'cabo', 'costas'),
+  ('b82ddb5c-1b5b-4b75-a358-7e16ca77162a', '00000000-0000-0000-0000-000000000001', 'Puxada Frontal', 'compound', 'cabo', 'costas'),
+  ('e55b40df-9ca5-4ddc-9d6b-9735047f2e53', '00000000-0000-0000-0000-000000000001', 'Remada Curvada', 'compound', 'barra', 'costas'),
+  ('956f8c7d-c21c-4df0-bb1b-be14d415c2a6', '00000000-0000-0000-0000-000000000001', 'Remada Unilateral', 'compound', 'halteres', 'costas'),
+  ('ede73df1-a3bf-4787-8898-a431df21874d', '00000000-0000-0000-0000-000000000001', 'Rosca Alternada', 'isolamento', 'halteres', 'bíceps'),
+  ('e67ac6f8-96a6-465e-85cf-ee207112b8cb', '00000000-0000-0000-0000-000000000001', 'Rosca Direta', 'isolamento', 'barra', 'bíceps'),
+  ('09a4a9ee-82f8-4d5e-a57f-adb4f91700c9', '00000000-0000-0000-0000-000000000001', 'Rosca Martelo', 'isolamento', 'halteres', 'bíceps'),
+  ('10986625-d09f-4977-9ac4-440f2addbb45', '00000000-0000-0000-0000-000000000001', 'Rosca Scott', 'isolamento', 'barra', 'bíceps'),
+  ('5ca13b7c-c0e7-4316-ae6a-fea259fcf76a', '00000000-0000-0000-0000-000000000001', 'Stiff', 'compound', 'barra', 'pernas'),
+  ('89624491-d58b-4159-85d5-ef21b5a8fe45', '00000000-0000-0000-0000-000000000001', 'Supino Inclinado com Halteres', 'compound', 'halteres', 'peito'),
+  ('64abee6c-dd32-4975-a851-9694f5a11a32', '00000000-0000-0000-0000-000000000001', 'Supino Reto com Barra', 'compound', 'barra', 'peito'),
+  ('ca7220b6-ddd6-474d-803c-6b2f958fa27f', '00000000-0000-0000-0000-000000000001', 'Tríceps Francês', 'isolamento', 'halteres', 'tríceps'),
+  ('161fd2df-38d9-427a-af08-a98f6c662611', '00000000-0000-0000-0000-000000000001', 'Tríceps Pulley', 'isolamento', 'cabo', 'tríceps'),
+  ('84f291c1-f6be-4034-bd26-18cab1a54e8b', '00000000-0000-0000-0000-000000000001', 'Tríceps Testa', 'isolamento', 'barra', 'tríceps');
+
+-- 11.3 PLANS (10 planos)
+-- Nota: personal_trainer_id é NULL aqui pois depende de usuários criados depois
+INSERT INTO public.plans (id, gym_id, name, goal_type, duration_weeks, level, benefits, price_cents, billing_cycle) VALUES
+  ('4e920307-ce9f-4439-846e-9e54d22573dd', '00000000-0000-0000-0000-000000000001', 'Hipertrofia Iniciante', 'hipertrofia', 12, 'Iniciante', '["Treino personalizado","Acompanhamento mensal","Acesso à área de musculação"]', 14900, 'monthly'),
+  ('82d1aa36-96f0-4b67-b8e7-2d638198af01', '00000000-0000-0000-0000-000000000001', 'Hipertrofia Avançado', 'hipertrofia', 16, 'Avançado', '["Periodização avançada","Acompanhamento semanal","Dieta integrada"]', 19900, 'monthly'),
+  ('bf26fe0b-5244-47ab-b3a9-5aa686048dbe', '00000000-0000-0000-0000-000000000001', 'Hipertrofia Semestral', 'hipertrofia', 24, 'Intermediário', '["6 meses de treino","Avaliação bimestral","Desconto especial"]', 79900, 'semiannual'),
+  ('d97f42e1-1af2-4edd-af1e-0402bf1ab797', '00000000-0000-0000-0000-000000000001', 'Emagrecimento Express', 'emagrecimento', 8, 'Iniciante', '["Treino HIIT","Cardio programado","Orientação nutricional"]', 17900, 'monthly'),
+  ('fc3da882-36d9-4ee3-98e3-7b6a66e8cc4d', '00000000-0000-0000-0000-000000000001', 'Emagrecimento Total', 'emagrecimento', 12, 'Intermediário', '["Treino funcional + musculação","Acompanhamento semanal","Bioimpedância mensal"]', 24900, 'monthly'),
+  ('5e255de3-d235-46c6-b5ad-d103b8016e94', '00000000-0000-0000-0000-000000000001', 'Performance Atlética', 'performance', 16, 'Avançado', '["Periodização esportiva","Testes de performance","Suporte do coach"]', 29900, 'monthly'),
+  ('d73eb19f-c6e1-42cb-8100-d13509f32459', '00000000-0000-0000-0000-000000000001', 'Performance Anual', 'performance', 48, 'Avançado', '["Plano anual completo","Avaliações trimestrais","Prioridade no agendamento"]', 249900, 'annual'),
+  ('bac4ca14-f449-4569-b5dc-cf4200628b2a', '00000000-0000-0000-0000-000000000001', 'Reabilitação Funcional', 'reabilitacao', 12, 'Iniciante', '["Exercícios corretivos","Mobilidade articular","Acompanhamento fisioterápico"]', 22900, 'monthly'),
+  ('9be73298-5860-402f-955e-4042361069b1', '00000000-0000-0000-0000-000000000001', 'Plano Básico', 'outro', 4, 'Iniciante', '["Acesso à academia","Treino básico","Suporte por app"]', 9900, 'monthly'),
+  ('4b21bc89-1789-49b0-a766-3e1be8890aa0', '00000000-0000-0000-0000-000000000001', 'Plano Premium', 'outro', 4, 'Todos', '["Acesso ilimitado","Personal trainer","Nutricionista","Aulas em grupo"]', 34900, 'monthly');
+
+-- 11.4 WORKOUT TEMPLATES (6 programas de treino)
+INSERT INTO public.workout_templates (id, gym_id, name, goal_type, level, weeks, notes) VALUES
+  ('a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'ABC Hipertrofia Iniciante', 'hipertrofia', 'Iniciante', 12, 'Treino ABC para iniciantes focado em ganho de massa muscular. 3x por semana.'),
+  ('a0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'ABCDE Hipertrofia Avançado', 'hipertrofia', 'Avançado', 16, 'Treino ABCDE avançado com volume e intensidade elevados. 5x por semana.'),
+  ('a0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Emagrecimento Express', 'emagrecimento', 'Iniciante', 8, 'Circuito de alta intensidade + cardio para máxima queima calórica. 4x por semana.'),
+  ('a0000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Emagrecimento Total ABCD', 'emagrecimento', 'Intermediário', 12, 'Combinação de musculação + HIIT para emagrecimento sustentável.'),
+  ('a0000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'Performance Atlética', 'performance', 'Avançado', 16, 'Periodização focada em força e potência para atletas. 5x por semana.'),
+  ('a0000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000001', 'Reabilitação Funcional', 'reabilitacao', 'Iniciante', 12, 'Exercícios corretivos e de mobilidade para reabilitação. 3x por semana.');
+
+-- 11.5 WORKOUT DAYS (24 dias de treino)
+INSERT INTO public.workout_days (id, template_id, day_index, title) VALUES
+  -- ABC Hipertrofia Iniciante
+  ('d0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 0, 'A - Peito + Tríceps'),
+  ('d0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 1, 'B - Costas + Bíceps'),
+  ('d0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 2, 'C - Pernas + Ombros'),
+  -- ABCDE Hipertrofia Avançado
+  ('d0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000002', 0, 'A - Peito'),
+  ('d0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000002', 1, 'B - Costas'),
+  ('d0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000002', 2, 'C - Pernas'),
+  ('d0000000-0000-0000-0000-000000000007', 'a0000000-0000-0000-0000-000000000002', 3, 'D - Ombros'),
+  ('d0000000-0000-0000-0000-000000000008', 'a0000000-0000-0000-0000-000000000002', 4, 'E - Braços'),
+  -- Emagrecimento Express
+  ('d0000000-0000-0000-0000-000000000009', 'a0000000-0000-0000-0000-000000000003', 0, 'A - Full Body + HIIT'),
+  ('d0000000-0000-0000-0000-000000000010', 'a0000000-0000-0000-0000-000000000003', 1, 'B - Upper Body + Cardio'),
+  ('d0000000-0000-0000-0000-000000000011', 'a0000000-0000-0000-0000-000000000003', 2, 'C - Lower Body + HIIT'),
+  ('d0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000003', 3, 'D - Circuito Total'),
+  -- Emagrecimento Total ABCD
+  ('d0000000-0000-0000-0000-000000000013', 'a0000000-0000-0000-0000-000000000004', 0, 'A - Peito + Tríceps + Cardio'),
+  ('d0000000-0000-0000-0000-000000000014', 'a0000000-0000-0000-0000-000000000004', 1, 'B - Costas + Bíceps + Cardio'),
+  ('d0000000-0000-0000-0000-000000000015', 'a0000000-0000-0000-0000-000000000004', 2, 'C - Pernas + Glúteos'),
+  ('d0000000-0000-0000-0000-000000000016', 'a0000000-0000-0000-0000-000000000004', 3, 'D - Ombros + Abdômen + HIIT'),
+  -- Performance Atlética
+  ('d0000000-0000-0000-0000-000000000017', 'a0000000-0000-0000-0000-000000000005', 0, 'A - Força Superior'),
+  ('d0000000-0000-0000-0000-000000000018', 'a0000000-0000-0000-0000-000000000005', 1, 'B - Força Inferior'),
+  ('d0000000-0000-0000-0000-000000000019', 'a0000000-0000-0000-0000-000000000005', 2, 'C - Potência Superior'),
+  ('d0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000005', 3, 'D - Potência Inferior'),
+  ('d0000000-0000-0000-0000-000000000021', 'a0000000-0000-0000-0000-000000000005', 4, 'E - Condicionamento'),
+  -- Reabilitação Funcional
+  ('d0000000-0000-0000-0000-000000000022', 'a0000000-0000-0000-0000-000000000006', 0, 'A - Mobilidade + Core'),
+  ('d0000000-0000-0000-0000-000000000023', 'a0000000-0000-0000-0000-000000000006', 1, 'B - Fortalecimento Leve'),
+  ('d0000000-0000-0000-0000-000000000024', 'a0000000-0000-0000-0000-000000000006', 2, 'C - Cardio Leve + Alongamento');
+
+-- 11.6 WORKOUT ITEMS (exercícios de cada dia)
+INSERT INTO public.workout_items (workout_day_id, exercise_id, sets, reps, rest_seconds, order_index) VALUES
+  -- A - Peito + Tríceps (ABC Iniciante)
+  ('d0000000-0000-0000-0000-000000000001', '64abee6c-dd32-4975-a851-9694f5a11a32', 4, '10', 90, 0),  -- Supino Reto
+  ('d0000000-0000-0000-0000-000000000001', '89624491-d58b-4159-85d5-ef21b5a8fe45', 3, '12', 60, 1),  -- Supino Inclinado
+  ('d0000000-0000-0000-0000-000000000001', 'd10988ae-69bf-4863-af4e-18f7d2a0b77e', 3, '12', 60, 2),  -- Crucifixo
+  ('d0000000-0000-0000-0000-000000000001', '161fd2df-38d9-427a-af08-a98f6c662611', 3, '12', 60, 3),  -- Tríceps Pulley
+  ('d0000000-0000-0000-0000-000000000001', 'ca7220b6-ddd6-474d-803c-6b2f958fa27f', 3, '10', 60, 4),  -- Tríceps Francês
+  -- B - Costas + Bíceps (ABC Iniciante)
+  ('d0000000-0000-0000-0000-000000000002', 'b82ddb5c-1b5b-4b75-a358-7e16ca77162a', 4, '10', 90, 0),  -- Puxada Frontal
+  ('d0000000-0000-0000-0000-000000000002', 'e55b40df-9ca5-4ddc-9d6b-9735047f2e53', 3, '10', 90, 1),  -- Remada Curvada
+  ('d0000000-0000-0000-0000-000000000002', '956f8c7d-c21c-4df0-bb1b-be14d415c2a6', 3, '12', 60, 2),  -- Remada Unilateral
+  ('d0000000-0000-0000-0000-000000000002', 'e67ac6f8-96a6-465e-85cf-ee207112b8cb', 3, '12', 60, 3),  -- Rosca Direta
+  ('d0000000-0000-0000-0000-000000000002', '09a4a9ee-82f8-4d5e-a57f-adb4f91700c9', 3, '12', 60, 4),  -- Rosca Martelo
+  -- C - Pernas + Ombros (ABC Iniciante)
+  ('d0000000-0000-0000-0000-000000000003', '77536277-ff70-4b70-929d-c0fc4e9ddf9a', 4, '10', 120, 0), -- Agachamento Livre
+  ('d0000000-0000-0000-0000-000000000003', '9b02f06a-9940-4375-b32f-165f0dda75a3', 3, '12', 90, 1),  -- Leg Press 45°
+  ('d0000000-0000-0000-0000-000000000003', '21360793-1736-401c-91de-41e7007f83fe', 3, '12', 60, 2),  -- Cadeira Extensora
+  ('d0000000-0000-0000-0000-000000000003', 'af7d1e74-a950-4a81-ac80-731e8f178513', 3, '12', 60, 3),  -- Mesa Flexora
+  ('d0000000-0000-0000-0000-000000000003', 'b2edebf5-3d5d-473b-9717-4a25e5454092', 3, '12', 60, 4),  -- Desenvolvimento
+  ('d0000000-0000-0000-0000-000000000003', '6d37546e-c5e5-4f90-8113-2c9defc7cc35', 3, '15', 45, 5),  -- Elevação Lateral
+  -- A - Peito (ABCDE Avançado)
+  ('d0000000-0000-0000-0000-000000000004', '64abee6c-dd32-4975-a851-9694f5a11a32', 4, '8', 120, 0),
+  ('d0000000-0000-0000-0000-000000000004', '89624491-d58b-4159-85d5-ef21b5a8fe45', 4, '10', 90, 1),
+  ('d0000000-0000-0000-0000-000000000004', 'd10988ae-69bf-4863-af4e-18f7d2a0b77e', 3, '12', 60, 2),
+  ('d0000000-0000-0000-0000-000000000004', 'e9249978-15ea-4180-b13d-4f26bf50a7a0', 3, '15', 45, 3),
+  -- B - Costas (ABCDE Avançado)
+  ('d0000000-0000-0000-0000-000000000005', 'b82ddb5c-1b5b-4b75-a358-7e16ca77162a', 4, '8', 120, 0),
+  ('d0000000-0000-0000-0000-000000000005', 'e55b40df-9ca5-4ddc-9d6b-9735047f2e53', 4, '8', 120, 1),
+  ('d0000000-0000-0000-0000-000000000005', '956f8c7d-c21c-4df0-bb1b-be14d415c2a6', 3, '10', 90, 2),
+  ('d0000000-0000-0000-0000-000000000005', '3e908649-ae49-47bc-9649-a9e914e6adb7', 3, '12', 60, 3),
+  -- C - Pernas (ABCDE Avançado)
+  ('d0000000-0000-0000-0000-000000000006', '77536277-ff70-4b70-929d-c0fc4e9ddf9a', 5, '6', 180, 0),
+  ('d0000000-0000-0000-0000-000000000006', '9b02f06a-9940-4375-b32f-165f0dda75a3', 4, '10', 120, 1),
+  ('d0000000-0000-0000-0000-000000000006', '818e7200-c67f-493b-93cb-a2b6b323722c', 3, '12', 90, 2),
+  ('d0000000-0000-0000-0000-000000000006', 'af7d1e74-a950-4a81-ac80-731e8f178513', 3, '12', 60, 3),
+  ('d0000000-0000-0000-0000-000000000006', '5ca13b7c-c0e7-4316-ae6a-fea259fcf76a', 3, '10', 90, 4),
+  -- D - Ombros (ABCDE Avançado)
+  ('d0000000-0000-0000-0000-000000000007', 'b2edebf5-3d5d-473b-9717-4a25e5454092', 4, '8', 90, 0),
+  ('d0000000-0000-0000-0000-000000000007', '6d37546e-c5e5-4f90-8113-2c9defc7cc35', 4, '12', 60, 1),
+  ('d0000000-0000-0000-0000-000000000007', '9258d882-d90d-400e-88eb-e767bc056fa1', 3, '12', 60, 2),
+  ('d0000000-0000-0000-0000-000000000007', '4ebf4222-f617-4e42-a777-e9b9fdd8e39d', 3, '15', 45, 3),
+  -- E - Braços (ABCDE Avançado)
+  ('d0000000-0000-0000-0000-000000000008', 'e67ac6f8-96a6-465e-85cf-ee207112b8cb', 4, '10', 60, 0),
+  ('d0000000-0000-0000-0000-000000000008', '10986625-d09f-4977-9ac4-440f2addbb45', 3, '12', 60, 1),
+  ('d0000000-0000-0000-0000-000000000008', '09a4a9ee-82f8-4d5e-a57f-adb4f91700c9', 3, '12', 60, 2),
+  ('d0000000-0000-0000-0000-000000000008', '161fd2df-38d9-427a-af08-a98f6c662611', 4, '10', 60, 3),
+  ('d0000000-0000-0000-0000-000000000008', '84f291c1-f6be-4034-bd26-18cab1a54e8b', 3, '12', 60, 4),
+  ('d0000000-0000-0000-0000-000000000008', 'ca7220b6-ddd6-474d-803c-6b2f958fa27f', 3, '12', 60, 5),
+  -- A - Full Body + HIIT (Emagrecimento Express)
+  ('d0000000-0000-0000-0000-000000000009', '77536277-ff70-4b70-929d-c0fc4e9ddf9a', 3, '15', 45, 0),
+  ('d0000000-0000-0000-0000-000000000009', '64abee6c-dd32-4975-a851-9694f5a11a32', 3, '12', 45, 1),
+  ('d0000000-0000-0000-0000-000000000009', 'b82ddb5c-1b5b-4b75-a358-7e16ca77162a', 3, '12', 45, 2),
+  ('d0000000-0000-0000-0000-000000000009', 'd0e4ea05-16ec-4b9e-ad82-8efdbe02759e', 1, '20min', 0, 3),
+  -- B - Upper Body + Cardio (Emagrecimento Express)
+  ('d0000000-0000-0000-0000-000000000010', '89624491-d58b-4159-85d5-ef21b5a8fe45', 3, '12', 45, 0),
+  ('d0000000-0000-0000-0000-000000000010', 'e55b40df-9ca5-4ddc-9d6b-9735047f2e53', 3, '12', 45, 1),
+  ('d0000000-0000-0000-0000-000000000010', 'b2edebf5-3d5d-473b-9717-4a25e5454092', 3, '12', 45, 2),
+  ('d0000000-0000-0000-0000-000000000010', '1b8a688a-d922-47d5-a08c-ff38b3065cd2', 1, '20min', 0, 3),
+  -- C - Lower Body + HIIT (Emagrecimento Express)
+  ('d0000000-0000-0000-0000-000000000011', '9b02f06a-9940-4375-b32f-165f0dda75a3', 3, '15', 45, 0),
+  ('d0000000-0000-0000-0000-000000000011', '818e7200-c67f-493b-93cb-a2b6b323722c', 3, '12', 45, 1),
+  ('d0000000-0000-0000-0000-000000000011', '372caab0-b23b-4dd2-a3f1-79566dae5898', 3, '12', 45, 2),
+  ('d0000000-0000-0000-0000-000000000011', 'd0e4ea05-16ec-4b9e-ad82-8efdbe02759e', 1, '20min', 0, 3),
+  -- D - Circuito Total (Emagrecimento Express)
+  ('d0000000-0000-0000-0000-000000000012', '61e55003-8516-4fd0-8aa5-ecbc7057064e', 3, '20', 30, 0),
+  ('d0000000-0000-0000-0000-000000000012', '1306c209-ccd8-494d-a93b-d660d45ee56b', 3, '12', 30, 1),
+  ('d0000000-0000-0000-0000-000000000012', '4f553380-07a5-4771-b7bd-1a63a135f19c', 3, '45s', 30, 2),
+  ('d0000000-0000-0000-0000-000000000012', 'feb29c07-78bf-4f03-b878-908aa20ace05', 1, '25min', 0, 3),
+  -- A - Peito + Tríceps + Cardio (Emagrecimento Total)
+  ('d0000000-0000-0000-0000-000000000013', '64abee6c-dd32-4975-a851-9694f5a11a32', 3, '12', 60, 0),
+  ('d0000000-0000-0000-0000-000000000013', '89624491-d58b-4159-85d5-ef21b5a8fe45', 3, '12', 60, 1),
+  ('d0000000-0000-0000-0000-000000000013', '161fd2df-38d9-427a-af08-a98f6c662611', 3, '12', 45, 2),
+  ('d0000000-0000-0000-0000-000000000013', 'd0e4ea05-16ec-4b9e-ad82-8efdbe02759e', 1, '15min', 0, 3),
+  -- B - Costas + Bíceps + Cardio (Emagrecimento Total)
+  ('d0000000-0000-0000-0000-000000000014', 'b82ddb5c-1b5b-4b75-a358-7e16ca77162a', 3, '12', 60, 0),
+  ('d0000000-0000-0000-0000-000000000014', '956f8c7d-c21c-4df0-bb1b-be14d415c2a6', 3, '12', 60, 1),
+  ('d0000000-0000-0000-0000-000000000014', 'e67ac6f8-96a6-465e-85cf-ee207112b8cb', 3, '12', 45, 2),
+  ('d0000000-0000-0000-0000-000000000014', '1b8a688a-d922-47d5-a08c-ff38b3065cd2', 1, '15min', 0, 3),
+  -- C - Pernas + Glúteos (Emagrecimento Total)
+  ('d0000000-0000-0000-0000-000000000015', '77536277-ff70-4b70-929d-c0fc4e9ddf9a', 4, '10', 90, 0),
+  ('d0000000-0000-0000-0000-000000000015', '9b02f06a-9940-4375-b32f-165f0dda75a3', 3, '12', 60, 1),
+  ('d0000000-0000-0000-0000-000000000015', '372caab0-b23b-4dd2-a3f1-79566dae5898', 3, '12', 60, 2),
+  ('d0000000-0000-0000-0000-000000000015', 'a75135a9-8199-46e0-8c50-f03ecb1120ea', 3, '15', 45, 3),
+  -- D - Ombros + Abdômen + HIIT (Emagrecimento Total)
+  ('d0000000-0000-0000-0000-000000000016', 'b2edebf5-3d5d-473b-9717-4a25e5454092', 3, '12', 60, 0),
+  ('d0000000-0000-0000-0000-000000000016', '6d37546e-c5e5-4f90-8113-2c9defc7cc35', 3, '15', 45, 1),
+  ('d0000000-0000-0000-0000-000000000016', '61e55003-8516-4fd0-8aa5-ecbc7057064e', 3, '20', 30, 2),
+  ('d0000000-0000-0000-0000-000000000016', 'd0e4ea05-16ec-4b9e-ad82-8efdbe02759e', 1, '15min', 0, 3),
+  -- A - Força Superior (Performance Atlética)
+  ('d0000000-0000-0000-0000-000000000017', '64abee6c-dd32-4975-a851-9694f5a11a32', 5, '5', 180, 0),
+  ('d0000000-0000-0000-0000-000000000017', 'b82ddb5c-1b5b-4b75-a358-7e16ca77162a', 5, '5', 180, 1),
+  ('d0000000-0000-0000-0000-000000000017', 'b2edebf5-3d5d-473b-9717-4a25e5454092', 4, '6', 120, 2),
+  -- B - Força Inferior (Performance Atlética)
+  ('d0000000-0000-0000-0000-000000000018', '77536277-ff70-4b70-929d-c0fc4e9ddf9a', 5, '5', 180, 0),
+  ('d0000000-0000-0000-0000-000000000018', '5ca13b7c-c0e7-4316-ae6a-fea259fcf76a', 4, '6', 120, 1),
+  ('d0000000-0000-0000-0000-000000000018', '9b02f06a-9940-4375-b32f-165f0dda75a3', 4, '8', 120, 2),
+  -- C - Potência Superior (Performance Atlética)
+  ('d0000000-0000-0000-0000-000000000019', '64abee6c-dd32-4975-a851-9694f5a11a32', 4, '3', 180, 0),
+  ('d0000000-0000-0000-0000-000000000019', 'e55b40df-9ca5-4ddc-9d6b-9735047f2e53', 4, '5', 120, 1),
+  ('d0000000-0000-0000-0000-000000000019', '1306c209-ccd8-494d-a93b-d660d45ee56b', 3, '8', 90, 2),
+  -- D - Potência Inferior (Performance Atlética)
+  ('d0000000-0000-0000-0000-000000000020', '77536277-ff70-4b70-929d-c0fc4e9ddf9a', 4, '3', 180, 0),
+  ('d0000000-0000-0000-0000-000000000020', '372caab0-b23b-4dd2-a3f1-79566dae5898', 4, '6', 120, 1),
+  ('d0000000-0000-0000-0000-000000000020', '818e7200-c67f-493b-93cb-a2b6b323722c', 3, '8', 90, 2),
+  -- E - Condicionamento (Performance Atlética)
+  ('d0000000-0000-0000-0000-000000000021', 'd0e4ea05-16ec-4b9e-ad82-8efdbe02759e', 1, '30min', 0, 0),
+  ('d0000000-0000-0000-0000-000000000021', '61e55003-8516-4fd0-8aa5-ecbc7057064e', 3, '20', 30, 1),
+  ('d0000000-0000-0000-0000-000000000021', '4f553380-07a5-4771-b7bd-1a63a135f19c', 3, '60s', 30, 2),
+  -- A - Mobilidade + Core (Reabilitação)
+  ('d0000000-0000-0000-0000-000000000022', '4f553380-07a5-4771-b7bd-1a63a135f19c', 3, '30s', 30, 0),
+  ('d0000000-0000-0000-0000-000000000022', '61e55003-8516-4fd0-8aa5-ecbc7057064e', 3, '15', 30, 1),
+  ('d0000000-0000-0000-0000-000000000022', '1d6e66ee-81de-4b11-bc71-d81f8f9e1c19', 3, '12', 30, 2),
+  -- B - Fortalecimento Leve (Reabilitação)
+  ('d0000000-0000-0000-0000-000000000023', '21360793-1736-401c-91de-41e7007f83fe', 3, '15', 45, 0),
+  ('d0000000-0000-0000-0000-000000000023', 'af7d1e74-a950-4a81-ac80-731e8f178513', 3, '15', 45, 1),
+  ('d0000000-0000-0000-0000-000000000023', '6d37546e-c5e5-4f90-8113-2c9defc7cc35', 3, '12', 30, 2),
+  -- C - Cardio Leve + Alongamento (Reabilitação)
+  ('d0000000-0000-0000-0000-000000000024', '1b8a688a-d922-47d5-a08c-ff38b3065cd2', 1, '20min', 0, 0),
+  ('d0000000-0000-0000-0000-000000000024', 'feb29c07-78bf-4f03-b878-908aa20ace05', 1, '15min', 0, 1);
+
+-- 11.7 STORE CATEGORIES (4 categorias)
+INSERT INTO public.store_categories (id, gym_id, name, slug, description, icon, sort_order) VALUES
+  ('e0543f48-9289-4202-b4e6-745a9d12664c', '00000000-0000-0000-0000-000000000001', 'Suplementos', 'suplementos', 'Whey, creatina, pré-treino e mais', 'pill', 1),
+  ('dde644be-4290-48f7-822c-43504b6825ee', '00000000-0000-0000-0000-000000000001', 'Roupas', 'roupas', 'Camisetas, shorts, leggings e mais', 'shirt', 2),
+  ('d0a47f9a-99d2-44cf-bc51-f5da118cdf3a', '00000000-0000-0000-0000-000000000001', 'Acessórios', 'acessorios', 'Garrafas, cintas, faixas e mais', 'dumbbell', 3),
+  ('cade1ec3-311d-4e3b-a254-1f3bfa1e5724', '00000000-0000-0000-0000-000000000001', 'Luvas', 'luvas', 'Luvas para musculação e cross', 'hand-metal', 4);
+
+-- 11.8 STORE PRODUCTS (10 produtos)
+INSERT INTO public.store_products (id, gym_id, category_id, name, slug, short_description, description, price_cents, compare_at_price_cents, stock_quantity, is_featured, tags) VALUES
+  ('cc368f79-b6ca-4a3b-93f1-a1574ac37560', '00000000-0000-0000-0000-000000000001', 'dde644be-4290-48f7-822c-43504b6825ee',
+   'Camiseta DryFit Elite', 'camiseta-dryfit-elite', 'Tecnologia de secagem rápida',
+   'Camiseta masculina com tecido DryFit premium. Leve, respirável e com proteção UV. Disponível em P, M, G, GG.',
+   7990, 9990, 40, true, '{camiseta,dryfit,uv}'),
+  ('96c20bd1-2303-4a28-958e-e93295c3969c', '00000000-0000-0000-0000-000000000001', 'd0a47f9a-99d2-44cf-bc51-f5da118cdf3a',
+   'Cinta Lombar Pro', 'cinta-lombar-pro', 'Suporte para levantamentos pesados',
+   'Cinta lombar em neoprene com velcro reforçado. Proteção para agachamento e terra.',
+   7990, NULL, 20, false, '{cinta,lombar,protecao}'),
+  ('83d3c339-2060-4a56-957a-98e4e198945f', '00000000-0000-0000-0000-000000000001', 'e0543f48-9289-4202-b4e6-745a9d12664c',
+   'Creatina Monohidratada 300g', 'creatina-mono-300g', 'Creatina pura para força e volume',
+   'Creatina monohidratada micronizada. Aumenta força, potência e volume muscular. 100 doses.',
+   8990, NULL, 80, false, '{creatina,forca}'),
+  ('8254799e-9405-4c02-9df7-b94e33c367be', '00000000-0000-0000-0000-000000000001', 'd0a47f9a-99d2-44cf-bc51-f5da118cdf3a',
+   'Faixa Elástica Kit (3 níveis)', 'faixa-elastica-kit-3', 'Leve, média e pesada',
+   'Kit com 3 faixas elásticas de resistência progressiva. Ideal para aquecimento e reabilitação.',
+   4990, NULL, 70, false, '{faixa,elastica,kit}'),
+  ('35bd2493-90f2-4437-842c-a71935da244b', '00000000-0000-0000-0000-000000000001', 'd0a47f9a-99d2-44cf-bc51-f5da118cdf3a',
+   'Garrafa Térmica 1L', 'garrafa-termica-1l', 'Mantém temperatura por 12h',
+   'Garrafa térmica em aço inox com capacidade de 1 litro. Tampa rosqueável com bico. Preta fosca.',
+   6990, 8490, 45, true, '{garrafa,termica}'),
+  ('8fa4953c-9406-4454-bf07-985ddfc3175c', '00000000-0000-0000-0000-000000000001', 'cade1ec3-311d-4e3b-a254-1f3bfa1e5724',
+   'Luva Cross Training', 'luva-cross-training', 'Para WODs e treinos funcionais',
+   'Luva minimalista de cross training. Proteção para pull-ups, kettlebells e barras. Ultra resistente.',
+   6990, 7990, 40, false, '{luva,cross,funcional}'),
+  ('a1b2c3d4-0001-0001-0001-000000000001', '00000000-0000-0000-0000-000000000001', 'cade1ec3-311d-4e3b-a254-1f3bfa1e5724',
+   'Luva Musculação Pro', 'luva-musculacao-pro', 'Palma em couro sintético',
+   'Luva para musculação com palma em couro sintético e apoio de pulso ajustável.',
+   5990, NULL, 55, false, '{luva,musculacao}'),
+  ('a1b2c3d4-0001-0001-0001-000000000002', '00000000-0000-0000-0000-000000000001', 'e0543f48-9289-4202-b4e6-745a9d12664c',
+   'Pré-Treino Insano 300g', 'pre-treino-insano', 'Máxima energia e foco',
+   'Pré-treino com cafeína, beta-alanina e arginina. Sabores: frutas vermelhas, limão.',
+   11990, 14990, 60, true, '{pre-treino,energia}'),
+  ('a1b2c3d4-0001-0001-0001-000000000003', '00000000-0000-0000-0000-000000000001', 'dde644be-4290-48f7-822c-43504b6825ee',
+   'Shorts Performance', 'shorts-performance', 'Tecido leve e respirável',
+   'Shorts masculino para treino. Tecido leve, bolsos laterais, cintura elástica.',
+   6490, NULL, 35, false, '{shorts,treino}'),
+  ('a1b2c3d4-0001-0001-0001-000000000004', '00000000-0000-0000-0000-000000000001', 'e0543f48-9289-4202-b4e6-745a9d12664c',
+   'Whey Protein 900g', 'whey-protein-900g', '30g de proteína por dose',
+   'Whey Protein concentrado com 30g de proteína por dose. Sabores: chocolate, baunilha, morango.',
+   12990, 15990, 100, true, '{whey,proteina}');
+
+-- ============================================================
+-- 12. INSTRUÇÕES PÓS-EXECUÇÃO
+-- ============================================================
+-- 
+-- 1. Crie um usuário admin no Supabase Dashboard → Authentication → Users
+-- 2. Depois execute no SQL Editor:
+--    
+--    INSERT INTO public.user_roles (user_id, gym_id, role)
+--    VALUES ('<UUID_DO_ADMIN>', '00000000-0000-0000-0000-000000000001', 'owner');
+--
+-- 3. Para criar um coach:
+--    INSERT INTO public.user_roles (user_id, gym_id, role)
+--    VALUES ('<UUID_DO_COACH>', '00000000-0000-0000-0000-000000000001', 'coach');
+--
+--    INSERT INTO public.coach_profiles (user_id, gym_id, bio, specialties, experience_years)
+--    VALUES ('<UUID_DO_COACH>', '00000000-0000-0000-0000-000000000001', 'Coach certificado', '{"musculação","funcional"}', 5);
+--
+-- ============================================================
+-- FIM DO SCRIPT COMPLETO
+-- ============================================================
