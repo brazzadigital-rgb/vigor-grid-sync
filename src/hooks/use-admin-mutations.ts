@@ -192,7 +192,11 @@ export function useUpdateGym() {
       const { error } = await supabase.from("gyms").update(updates).eq("id", gymId!);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gym-settings"] }); toast({ title: "Configurações salvas!" }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gym-settings"] });
+      qc.invalidateQueries({ queryKey: ["gym-info"] });
+      toast({ title: "Configurações salvas!" });
+    },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 }
