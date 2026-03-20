@@ -35,6 +35,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPrograms from "./pages/admin/AdminPrograms";
 import AdminProgramDetail from "./pages/admin/AdminProgramDetail";
+import AdminExercises from "./pages/admin/AdminExercises";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminAccessControl from "./pages/admin/AdminAccessControl";
