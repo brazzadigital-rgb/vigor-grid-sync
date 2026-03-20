@@ -1,7 +1,7 @@
 import { NavLink, useLocation, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Dumbbell, CreditCard, Shield,
-  BarChart3, Settings, Zap, ChevronLeft, Menu, DollarSign, LogOut, ShoppingBag, UserCheck, ExternalLink
+  BarChart3, Settings, Zap, ChevronLeft, Menu, DollarSign, LogOut, ShoppingBag, UserCheck, ExternalLink, ListChecks
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
