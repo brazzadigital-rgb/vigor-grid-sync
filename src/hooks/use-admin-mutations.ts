@@ -298,11 +298,37 @@ export function useCreateExercise() {
   const gymId = useGymId();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async (data: { name: string; muscle_group?: string; category?: string; equipment?: string }) => {
+    mutationFn: async (data: { name: string; muscle_group?: string | null; category?: string | null; equipment?: string | null; instructions?: string | null; media_url?: string | null }) => {
       const { error } = await supabase.from("exercises").insert({ ...data, gym_id: gymId! } as any);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["gym-exercises"] }); toast({ title: "Exercício criado!" }); },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+}
+
+export function useUpdateExercise() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
+      const { error } = await supabase.from("exercises").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gym-exercises"] }); toast({ title: "Exercício atualizado!" }); },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+}
+
+export function useDeleteExercise() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("exercises").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gym-exercises"] }); toast({ title: "Exercício removido!" }); },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 }
