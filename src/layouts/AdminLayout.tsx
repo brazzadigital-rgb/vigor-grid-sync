@@ -13,6 +13,7 @@ const sidebarItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/admin/users", icon: Users, label: "Usuários" },
   { to: "/admin/programs", icon: Dumbbell, label: "Programas" },
+  { to: "/admin/exercises", icon: ListChecks, label: "Exercícios" },
   { to: "/admin/plans", icon: DollarSign, label: "Planos" },
   { to: "/admin/trainers", icon: UserCheck, label: "Personal Trainers" },
   { to: "/admin/payments", icon: CreditCard, label: "Pagamentos" },
