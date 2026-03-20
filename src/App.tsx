@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import AppThemeSync from "@/components/AppThemeSync";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "./pages/auth/LoginPage";
 import OnboardingPage from "./pages/auth/OnboardingPage";
@@ -61,6 +62,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <AppThemeSync />
           <Routes>
             <Route path="/" element={<OnboardingPage />} />
             <Route path="/login" element={<LoginPage />} />
