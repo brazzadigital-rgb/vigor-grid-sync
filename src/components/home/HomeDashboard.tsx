@@ -138,7 +138,7 @@ export default memo(function HomeDashboard() {
 
       {/* No Plan Banner */}
       <NoPlanBanner
-        hasActivePlan={!!membership && membership.status === "active"}
+        hasActivePlan={!!membership && membership.status === "active" && !!membership.plan_id}
         isLoading={membershipLoading}
       />
 
