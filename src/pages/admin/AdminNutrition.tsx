@@ -331,6 +331,22 @@ export default function AdminNutrition() {
   };
 
   const openAssignmentDialog = () => {
+    if (!members.length) {
+      toast({
+        title: "Nenhum aluno disponível",
+        description: "Verifique se existem alunos ativos e permissão para visualizar membros.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!(diets ?? []).length) {
+      toast({
+        title: "Nenhuma dieta cadastrada",
+        description: "Crie uma dieta antes de atribuir.",
+        variant: "destructive",
+      });
+      return;
+    }
     setAssignmentForm({
       student_id: members[0]?.id ?? "",
       diet_id: diets?.[0]?.id ?? "",
@@ -363,7 +379,9 @@ export default function AdminNutrition() {
         if (confirm("Já existe atribuição ativa dessa dieta para esse aluno. Deseja duplicar mesmo assim?")) {
           await saveAssignment(true);
         }
+        return;
       }
+      toast({ title: "Erro ao atribuir dieta", description: e.message, variant: "destructive" });
     }
   };
 

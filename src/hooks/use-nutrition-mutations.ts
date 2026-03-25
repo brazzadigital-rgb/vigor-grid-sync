@@ -153,15 +153,16 @@ export function useAssignDietToStudent() {
       skip_duplicate_check?: boolean;
     }) => {
       if (!payload.skip_duplicate_check && payload.status !== "paused" && payload.status !== "finished") {
-        const { data: existing } = await supabase
+        const { data: existing, error: existingError } = await supabase
           .from("student_diets" as any)
-          .select("id, diet_id")
+          .select("id")
           .eq("gym_id", profile!.gym_id!)
           .eq("student_id", payload.student_id)
           .eq("diet_id", payload.diet_id)
           .eq("status", "active")
-          .maybeSingle();
-        if (existing?.id) {
+          .limit(1);
+        if (existingError) throw existingError;
+        if ((existing ?? []).length > 0) {
           throw new Error("duplicate_active_assignment");
         }
       }
