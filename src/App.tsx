@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppThemeSync from "@/components/AppThemeSync";
+import PwaAndPushManager from "@/components/PwaAndPushManager";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "./pages/auth/LoginPage";
 import OnboardingPage from "./pages/auth/OnboardingPage";
@@ -65,6 +66,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <AppThemeSync />
+          <PwaAndPushManager />
           <Routes>
             <Route path="/" element={<OnboardingPage />} />
             <Route path="/login" element={<LoginPage />} />

@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useGymInfo } from "@/hooks/use-home-data";
 
 const sidebarItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -86,6 +87,10 @@ export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { data: gymInfo } = useGymInfo();
+
+  const appDisplayName = (gymInfo?.settings as any)?.app_display_name || gymInfo?.name || "FitAdmin";
+  const appLogo = (gymInfo?.settings as any)?.app_logo_url || gymInfo?.logo_url || null;
 
   const currentLabel = sidebarItems.find((i) =>
     i.end ? location.pathname === i.to : location.pathname.startsWith(i.to)
@@ -103,7 +108,10 @@ export default function AdminLayout() {
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0 flex flex-col">
               <div className="flex items-center h-16 px-4 border-b border-border">
-                <span className="text-lg font-bold text-gradient-purple">FitAdmin</span>
+                <div className="flex items-center gap-2">
+                  {appLogo ? <img src={appLogo} alt="Logo" className="w-7 h-7 rounded-md object-cover" /> : null}
+                  <span className="text-lg font-bold text-gradient-purple">{appDisplayName}</span>
+                </div>
               </div>
               <SidebarNav onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
@@ -161,7 +169,10 @@ export default function AdminLayout() {
         ) : (
           <>
             <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-              <span className="text-lg font-bold text-gradient-purple">FitAdmin</span>
+              <div className="flex items-center gap-2 min-w-0">
+                {appLogo ? <img src={appLogo} alt="Logo" className="w-7 h-7 rounded-md object-cover shrink-0" /> : null}
+                <span className="text-lg font-bold text-gradient-purple truncate">{appDisplayName}</span>
+              </div>
               <button
                 onClick={() => setCollapsed(true)}
                 className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
