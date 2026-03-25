@@ -1,7 +1,7 @@
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import homeHero from "@/assets/home-hero.jpg";
-import { Flame, ChevronRight, Dumbbell, Clock, Sparkles, Check, Loader2, Target } from "lucide-react";
+import { Flame, ChevronRight, Dumbbell, Clock, Sparkles, Check, Loader2, Target, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyMembership, useMyAssignedWorkouts, useMyWorkoutSessions, useMyWorkoutStats } from "@/hooks/use-supabase-data";
@@ -32,6 +32,11 @@ const getGreeting = () => {
   return "Boa noite";
 };
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
 export default memo(function HomeDashboard() {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -42,7 +47,10 @@ export default memo(function HomeDashboard() {
   const { data: gym } = useGymInfo();
 
   const heroImage = (gym?.settings as any)?.hero_image_url || homeHero;
+  const pwaInstallEnabled = Boolean((gym?.settings as any)?.pwa_install_enabled);
   const personalTrainerId = (membership?.plans as any)?.personal_trainer_id;
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   const { data: trainerProfile } = useQuery({
     queryKey: ["personal-trainer", personalTrainerId],
@@ -75,6 +83,46 @@ export default memo(function HomeDashboard() {
 
   const firstName = profile?.name?.split(" ")[0] || "Aluno";
   const greeting = useMemo(() => getGreeting(), []);
+
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (window.navigator as any).standalone === true;
+
+    if (isStandalone || !pwaInstallEnabled) {
+      setShowInstallBanner(false);
+      return;
+    }
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+      setShowInstallBanner(true);
+    };
+
+    const onAppInstalled = () => {
+      setShowInstallBanner(false);
+      setInstallPromptEvent(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
+  }, [pwaInstallEnabled]);
+
+  const handleInstallApp = async () => {
+    if (!installPromptEvent) return;
+    await installPromptEvent.prompt();
+    const choice = await installPromptEvent.userChoice;
+    if (choice.outcome === "accepted") {
+      setShowInstallBanner(false);
+      setInstallPromptEvent(null);
+    }
+  };
 
   return (
     <div className="relative max-w-lg mx-auto space-y-5">
@@ -143,6 +191,25 @@ export default memo(function HomeDashboard() {
         isLoading={membershipLoading}
         bannerImageUrl={(gym?.settings as any)?.no_plan_banner_image_url}
       />
+
+      {/* Install App Banner */}
+      {showInstallBanner && installPromptEvent && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="rounded-2xl border border-primary/25 bg-gradient-card p-4 flex items-center justify-between gap-3"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">Instale o app no seu celular</p>
+            <p className="text-xs text-muted-foreground">Acesso mais rápido e experiência melhor em tela cheia.</p>
+          </div>
+          <Button size="sm" variant="glow" onClick={handleInstallApp}>
+            <Download className="w-4 h-4" />
+            Instalar
+          </Button>
+        </motion.div>
+      )}
 
       {/* Continue Workout Banner */}
       <ContinueWorkoutBanner />
