@@ -7,10 +7,12 @@ import bannerImg from "@/assets/banner-fitness.png";
 interface NoPlanBannerProps {
   hasActivePlan: boolean;
   isLoading: boolean;
+  bannerImageUrl?: string | null;
 }
 
-export default memo(function NoPlanBanner({ hasActivePlan, isLoading }: NoPlanBannerProps) {
+export default memo(function NoPlanBanner({ hasActivePlan, isLoading, bannerImageUrl }: NoPlanBannerProps) {
   const navigate = useNavigate();
+  const imageSrc = bannerImageUrl || bannerImg;
 
   if (isLoading || hasActivePlan) return null;
 
@@ -86,7 +88,7 @@ export default memo(function NoPlanBanner({ hasActivePlan, isLoading }: NoPlanBa
         {/* Image side */}
         <div className="relative w-28 h-32 flex-shrink-0 overflow-hidden rounded-l-2xl">
           <img
-            src={bannerImg}
+            src={imageSrc}
             alt="Fitness"
             className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
           />

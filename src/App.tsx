@@ -25,6 +25,7 @@ import StudentSettings from "./pages/student/StudentSettings";
 import StudentGoals from "./pages/student/StudentGoals";
 import StudentBadges from "./pages/student/StudentBadges";
 import StudentPlan from "./pages/student/StudentPlan";
+import StudentDiet from "./pages/student/StudentDiet";
 import PlansPage from "./pages/student/PlansPage";
 import StorePage from "./pages/student/StorePage";
 import StoreCategoryPage from "./pages/student/StoreCategoryPage";
@@ -42,6 +43,7 @@ import AdminPayments from "./pages/admin/AdminPayments";
 import AdminAccessControl from "./pages/admin/AdminAccessControl";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminIntegrations from "./pages/admin/AdminIntegrations";
+import AdminNutrition from "./pages/admin/AdminNutrition";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminPersonalTrainers from "./pages/admin/AdminPersonalTrainers";
 import AdminStoreDashboard from "./pages/admin/AdminStoreDashboard";
@@ -84,6 +86,7 @@ const App = () => (
             <Route path="/app/profile/badges" element={<ProtectedRoute><StudentLayout><StudentBadges /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/profile/plan" element={<ProtectedRoute><StudentLayout><StudentPlan /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/plans" element={<ProtectedRoute><StudentLayout><PlansPage /></StudentLayout></ProtectedRoute>} />
+            <Route path="/app/diet" element={<ProtectedRoute><StudentLayout><StudentDiet /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/progress/today" element={<ProtectedRoute><ProgressTodayPage /></ProtectedRoute>} />
             <Route path="/app/goals" element={<ProtectedRoute><StudentLayout><StudentGoals /></StudentLayout></ProtectedRoute>} />
             <Route path="/app/goals/new" element={<ProtectedRoute><StudentLayout><StudentGoals /></StudentLayout></ProtectedRoute>} />
@@ -108,6 +111,7 @@ const App = () => (
               <Route path="access" element={<AdminAccessControl />} />
               <Route path="reports" element={<AdminReports />} />
               <Route path="integrations" element={<AdminIntegrations />} />
+              <Route path="nutrition" element={<AdminNutrition />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="store" element={<AdminStoreDashboard />}>
                 <Route path="categories" element={<AdminStoreCategories />} />

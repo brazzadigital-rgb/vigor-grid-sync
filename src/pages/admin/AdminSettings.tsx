@@ -5,8 +5,10 @@ import { useGymSettings } from "@/hooks/use-supabase-data";
 import { useUpdateGym } from "@/hooks/use-admin-mutations";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminSettings() {
+  const { profile } = useAuth();
   const { data: gym, isLoading } = useGymSettings();
   const updateGym = useUpdateGym();
   const { toast } = useToast();
@@ -16,6 +18,7 @@ export default function AdminSettings() {
   const [settings, setSettings] = useState<any>({});
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const noPlanBannerFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (gym) {
@@ -27,14 +30,15 @@ export default function AdminSettings() {
   }, [gym]);
 
   const heroImageUrl = settings?.hero_image_url as string | undefined;
+  const noPlanBannerImageUrl = settings?.no_plan_banner_image_url as string | undefined;
 
   const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !gym) return;
+    if (!file || !gym || !profile?.id) return;
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `${gym.id}/hero.${ext}`;
+      const path = `${profile.id}/gym/${gym.id}/hero.${ext}`;
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -48,8 +52,32 @@ export default function AdminSettings() {
     }
   };
 
+  const handleNoPlanBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !gym || !profile?.id) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${profile.id}/gym/${gym.id}/no-plan-banner.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const url = urlData.publicUrl + "?t=" + Date.now();
+      setSettings((prev: any) => ({ ...prev, no_plan_banner_image_url: url }));
+      toast({ title: "Banner sem plano carregado!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const removeHero = () => {
     setSettings((prev: any) => ({ ...prev, hero_image_url: null }));
+  };
+
+  const removeNoPlanBanner = () => {
+    setSettings((prev: any) => ({ ...prev, no_plan_banner_image_url: null }));
   };
 
   const handleSave = async () => {
@@ -92,6 +120,43 @@ export default function AdminSettings() {
         ) : (
           <button
             onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="w-full h-32 rounded-xl border-2 border-dashed border-border hover:border-primary/40 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer"
+          >
+            {uploading ? <Loader2 className="w-6 h-6 text-primary animate-spin" /> : <ImageIcon className="w-6 h-6 text-muted-foreground" />}
+            <span className="text-sm text-muted-foreground">Clique para enviar uma imagem</span>
+          </button>
+        )}
+      </div>
+
+      {/* No Plan Banner Image */}
+      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+        <h3 className="text-base font-semibold text-foreground">Banner "Sem plano" (Home)</h3>
+        <p className="text-xs text-muted-foreground">Imagem exibida no banner para alunos sem plano ativo</p>
+        <input type="file" ref={noPlanBannerFileRef} accept="image/*" onChange={handleNoPlanBannerUpload} className="hidden" />
+        {noPlanBannerImageUrl ? (
+          <div className="relative rounded-xl overflow-hidden h-40">
+            <img src={noPlanBannerImageUrl} alt="Banner sem plano" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+            <div className="absolute top-2 right-2 flex gap-2">
+              <Button
+                size="icon"
+                variant="secondary"
+                className="w-8 h-8 rounded-lg"
+                onClick={() => noPlanBannerFileRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              </Button>
+              <Button size="icon" variant="destructive" className="w-8 h-8 rounded-lg" onClick={removeNoPlanBanner}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => noPlanBannerFileRef.current?.click()}
             disabled={uploading}
             className="w-full h-32 rounded-xl border-2 border-dashed border-border hover:border-primary/40 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer"
           >
