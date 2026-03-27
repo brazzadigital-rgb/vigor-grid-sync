@@ -60,7 +60,7 @@ export function useGymRecipes() {
         .eq("gym_id", profile!.gym_id!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Recipe[];
+      return (data ?? []) as unknown as Recipe[];
     },
   });
 }
@@ -77,7 +77,7 @@ export function useGymDiets() {
         .eq("gym_id", profile!.gym_id!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Diet[];
+      return (data ?? []) as unknown as Diet[];
     },
   });
 }
@@ -93,7 +93,7 @@ export function useDietRecipes(dietId?: string) {
         .eq("diet_id", dietId!)
         .order("meal_order", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as DietRecipe[];
+      return (data ?? []) as unknown as DietRecipe[];
     },
   });
 }
