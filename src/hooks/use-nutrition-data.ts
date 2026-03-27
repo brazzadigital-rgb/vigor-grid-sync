@@ -60,7 +60,7 @@ export function useGymRecipes() {
         .eq("gym_id", profile!.gym_id!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Recipe[];
+      return (data ?? []) as unknown as Recipe[];
     },
   });
 }
@@ -77,7 +77,7 @@ export function useGymDiets() {
         .eq("gym_id", profile!.gym_id!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Diet[];
+      return (data ?? []) as unknown as Diet[];
     },
   });
 }
@@ -93,7 +93,7 @@ export function useDietRecipes(dietId?: string) {
         .eq("diet_id", dietId!)
         .order("meal_order", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as DietRecipe[];
+      return (data ?? []) as unknown as DietRecipe[];
     },
   });
 }
@@ -138,7 +138,7 @@ export function useStudentActiveDiet() {
       const { data: diet, error: dietError } = await supabase
         .from("diets" as any)
         .select("id, name, description, is_active")
-        .eq("id", assignment.diet_id)
+        .eq("id", (assignment as any).diet_id)
         .eq("is_active", true)
         .maybeSingle();
 
@@ -148,7 +148,7 @@ export function useStudentActiveDiet() {
       const { data: links, error: linksError } = await supabase
         .from("diet_recipes" as any)
         .select("id, recipe_id, meal_order, scheduled_time")
-        .eq("diet_id", diet.id)
+        .eq("diet_id", (diet as any).id)
         .order("meal_order", { ascending: true });
 
       if (linksError) throw linksError;

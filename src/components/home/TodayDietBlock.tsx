@@ -24,7 +24,7 @@ export default memo(function TodayDietBlock() {
     );
   }
 
-  if (!data || !data.diet?.is_active) {
+  if (!data || !(data.diet as any)?.is_active) {
     return (
       <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
         <div className="flex items-center gap-2">
@@ -45,7 +45,7 @@ export default memo(function TodayDietBlock() {
           <Apple className="w-4 h-4 text-primary" />
           <div>
             <p className="text-sm font-semibold text-foreground">Sua Dieta de Hoje</p>
-            <p className="text-[11px] text-muted-foreground">{data.diet.name}</p>
+            <p className="text-[11px] text-muted-foreground">{(data.diet as any).name}</p>
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={() => navigate("/app/diet")}>

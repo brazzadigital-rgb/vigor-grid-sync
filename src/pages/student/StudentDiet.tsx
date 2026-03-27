@@ -38,9 +38,9 @@ export default function StudentDiet() {
       ) : (
         <div className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-4">
-            <p className="text-base font-semibold text-foreground">{data.diet.name}</p>
-            {data.diet.description && <p className="text-xs text-muted-foreground mt-1">{data.diet.description}</p>}
-            {data.assignment?.notes && <p className="text-xs text-muted-foreground mt-2">Obs: {data.assignment.notes}</p>}
+            <p className="text-base font-semibold text-foreground">{(data.diet as any).name}</p>
+            {(data.diet as any).description && <p className="text-xs text-muted-foreground mt-1">{(data.diet as any).description}</p>}
+            {(data.assignment as any)?.notes && <p className="text-xs text-muted-foreground mt-2">Obs: {(data.assignment as any).notes}</p>}
           </div>
 
           {(data.meals ?? []).map((item: any) => (

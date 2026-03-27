@@ -375,6 +375,93 @@ export type Database = {
           },
         ]
       }
+      diet_recipes: {
+        Row: {
+          diet_id: string
+          id: string
+          meal_order: number
+          recipe_id: string
+          scheduled_time: string | null
+        }
+        Insert: {
+          diet_id: string
+          id?: string
+          meal_order?: number
+          recipe_id: string
+          scheduled_time?: string | null
+        }
+        Update: {
+          diet_id?: string
+          id?: string
+          meal_order?: number
+          recipe_id?: string
+          scheduled_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diet_recipes_diet_id_fkey"
+            columns: ["diet_id"]
+            isOneToOne: false
+            referencedRelation: "diets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diet_recipes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          gym_id: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          gym_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          gym_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diets_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercises: {
         Row: {
           category: string | null
@@ -870,6 +957,71 @@ export type Database = {
           },
         ]
       }
+      recipes: {
+        Row: {
+          calories: number
+          carbs_g: number
+          created_at: string
+          description: string | null
+          fat_g: number
+          gym_id: string
+          id: string
+          image_url: string | null
+          ingredients: Json
+          is_active: boolean
+          meal_type: string
+          prep_time_minutes: number | null
+          protein_g: number
+          steps: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          calories?: number
+          carbs_g?: number
+          created_at?: string
+          description?: string | null
+          fat_g?: number
+          gym_id: string
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          is_active?: boolean
+          meal_type: string
+          prep_time_minutes?: number | null
+          protein_g?: number
+          steps?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          calories?: number
+          carbs_g?: number
+          created_at?: string
+          description?: string | null
+          fat_g?: number
+          gym_id?: string
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          is_active?: boolean
+          meal_type?: string
+          prep_time_minutes?: number | null
+          protein_g?: number
+          steps?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_cart_items: {
         Row: {
           created_at: string
@@ -1145,6 +1297,77 @@ export type Database = {
             columns: ["gym_id"]
             isOneToOne: false
             referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_diets: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          diet_id: string
+          ends_at: string | null
+          gym_id: string
+          id: string
+          notes: string | null
+          starts_at: string
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          diet_id: string
+          ends_at?: string | null
+          gym_id: string
+          id?: string
+          notes?: string | null
+          starts_at?: string
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          diet_id?: string
+          ends_at?: string | null
+          gym_id?: string
+          id?: string
+          notes?: string | null
+          starts_at?: string
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_diets_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_diets_diet_id_fkey"
+            columns: ["diet_id"]
+            isOneToOne: false
+            referencedRelation: "diets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_diets_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_diets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1627,6 +1850,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_gym_nutrition_staff: {
+        Args: { _gym_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_gym_staff: {
         Args: { _gym_id: string; _user_id: string }
         Returns: boolean
@@ -1635,7 +1862,7 @@ export type Database = {
     Enums: {
       access_decision: "allow" | "deny"
       ai_job_status: "pending" | "running" | "done" | "error"
-      app_role: "super_admin" | "owner" | "coach" | "member"
+      app_role: "super_admin" | "owner" | "coach" | "member" | "nutritionist"
       billing_cycle: "monthly" | "semiannual" | "annual" | "one_time"
       credential_status: "active" | "blocked" | "expired"
       credential_type: "qr" | "rfid" | "pin"
@@ -1789,7 +2016,7 @@ export const Constants = {
     Enums: {
       access_decision: ["allow", "deny"],
       ai_job_status: ["pending", "running", "done", "error"],
-      app_role: ["super_admin", "owner", "coach", "member"],
+      app_role: ["super_admin", "owner", "coach", "member", "nutritionist"],
       billing_cycle: ["monthly", "semiannual", "annual", "one_time"],
       credential_status: ["active", "blocked", "expired"],
       credential_type: ["qr", "rfid", "pin"],
