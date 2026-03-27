@@ -24,7 +24,7 @@ export default memo(function TodayDietBlock() {
     );
   }
 
-  if (!data || !data.diet?.is_active) {
+  if (!data || !(data.diet as any)?.is_active) {
     return (
       <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
         <div className="flex items-center gap-2">
