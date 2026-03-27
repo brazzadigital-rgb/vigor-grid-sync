@@ -78,7 +78,7 @@ export function useCreateDiet() {
       if (recipes.length > 0) {
         const { error: linksError } = await supabase
           .from("diet_recipes" as any)
-          .insert(recipes.map((r) => ({ ...r, diet_id: diet.id })));
+          .insert(recipes.map((r) => ({ ...r, diet_id: (diet as any).id })));
         if (linksError) throw linksError;
       }
     },
