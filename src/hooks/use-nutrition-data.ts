@@ -138,7 +138,7 @@ export function useStudentActiveDiet() {
       const { data: diet, error: dietError } = await supabase
         .from("diets" as any)
         .select("id, name, description, is_active")
-        .eq("id", assignment.diet_id)
+        .eq("id", (assignment as any).diet_id)
         .eq("is_active", true)
         .maybeSingle();
 
@@ -148,7 +148,7 @@ export function useStudentActiveDiet() {
       const { data: links, error: linksError } = await supabase
         .from("diet_recipes" as any)
         .select("id, recipe_id, meal_order, scheduled_time")
-        .eq("diet_id", diet.id)
+        .eq("diet_id", (diet as any).id)
         .order("meal_order", { ascending: true });
 
       if (linksError) throw linksError;
